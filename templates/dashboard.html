@@ -9,7 +9,7 @@
     <!-- Icons & Plotly -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
     <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
-
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
     <style>
         /* This defines the light theme variables. */
         .light-mode {
@@ -92,7 +92,7 @@
             align-items: center;
             transition: width 0.25s ease;
             overflow: hidden;
-            z-index: 10;
+            z-index: 1000;
         }
 
         .sidebar.expanded {
@@ -219,6 +219,134 @@
             flex: 1;
             padding: 24px;
             overflow-x: hidden;
+        }
+
+        /* --- NEW: Credit Display Box Styles --- */
+        .credit-display-box {
+            position: absolute;
+            top: 24px;
+            right: 24px;
+            z-index: 100;
+            text-align: center;
+
+            /* --- Default state (> 0 credits) --- */
+            /* Box is transparent and has no padding */
+            background: transparent;
+            border: none;
+            padding: 0;
+            box-shadow: none;
+            border-radius: 12px;
+
+            /* --- Added transition for smoothness --- */
+            transition: all 0.3s ease;
+        }
+
+        /* --- "Show Box" state (<= 0 credits) --- */
+        /* This class is added by JavaScript when credits are <= 0 */
+        .credit-display-box.show-box {
+            background: var(--panel);
+            border: 1px solid #212735;
+            padding: 12px 16px;
+            box-shadow: var(--card-shadow);
+        }
+
+        /* --- "Credits Remaining" text --- */
+        .credit-display-box div:first-child {
+            display: none;
+            /* Hidden by default */
+            font-size: 13px;
+            /* Made this smaller than the number */
+            color: var(--muted);
+            margin-bottom: 4px;
+        }
+
+        /* Show the text ONLY when the full box is visible */
+        .credit-display-box.show-box div:first-child {
+            display: block;
+        }
+
+        /* --- The credit number --- */
+        #credit-count {
+            font-size: 18px;
+            font-weight: 800;
+            color: var(--brand);
+            line-height: 1.1;
+
+            /* --- This is the default "number only" style --- */
+            background: rgba(0, 0, 0, 0.2);
+            padding: 8px 12px;
+            border-radius: 10px;
+            transition: all 0.3s ease;
+        }
+
+        /* --- Style for the number when the box appears --- */
+        .credit-display-box.show-box #credit-count {
+            background: transparent;
+            /* Remove the number's background */
+            padding: 0;
+            font-size: 24px;
+            /* Make it bigger inside the box */
+        }
+
+        /* This class still controls the color (blue vs. red) */
+        #credit-count.no-credits {
+            color: var(--danger);
+        }
+
+        /* --- "Buy Credits" link --- */
+        .buy-credits-link {
+            display: none;
+            /* Hidden by default */
+            font-size: 13px;
+            color: var(--brand);
+            text-decoration: none;
+            font-weight: 600;
+            /* margin-top: 8px; */
+        }
+
+        /* Show the link ONLY when the full box is visible */
+        .credit-display-box.show-box .buy-credits-link {
+            display: block;
+        }
+
+        .buy-credits-link:hover {
+            text-decoration: underline;
+        }
+
+        /* --- Media queries remain the same --- */
+        @media (max-width: 640px) {
+            .main {
+                padding-top: 100px;
+                /* Add padding to avoid overlap */
+            }
+
+            .credit-display-box {
+                /* top: 80px; */
+                /* Position it below the mobile toggle */
+                right: 18px;
+
+            }
+
+            /* We need to update the "show-box" for mobile */
+            .credit-display-box.show-box {
+                padding: 8px 12px;
+                /* Ensures padding is correct on mobile */
+            }
+
+            /* And update the "number only" style for mobile */
+            .credit-display-box:not(.show-box) {
+                /* When box is hidden, only show number */
+                top: 80px;
+                left: auto;
+                /* Reset left */
+                right: 18px;
+                /* Stick to the right */
+            }
+
+            .title {
+                margin-top: 18px;
+                /* Add margin to the title */
+            }
         }
 
         .title {
@@ -490,10 +618,20 @@
 
         <!-- Main Content -->
         <main class="main" id="main-content">
+            <!-- adding credit logic -->
+            <div class="credit-display-box">
+                <div>Credits</div>
+                <div id="credit-count">5</div>
+                <a href="https://rzp.io/rzp/O7H1VONQ" class="buy-credits-link" id="buy-credits-link">
+                    Buy Credits
+                </a>
+            </div>
+
             <h1 class="title">Welcome to MORPH-AI-ERA</h1>
             <p class="subtitle">Dashboard Overview</p>
 
             <section class="metrics">
+
                 <div class="card">
                     <div class="card-controls">
                         <select class="select card-metric-select" id="metric-1"></select>
@@ -551,7 +689,6 @@
                     <div class="metric-val" id="val-4"></div>
                 </div>
             </section>
-
             <section class="bar">
                 <div class="group"><span class="label">Upload</span><label for="fileInput" class="file-label"><i
                             class="fa-solid fa-file-arrow-up"></i> File</label><input id="fileInput" type="file"
@@ -699,11 +836,7 @@
                 </div>
             </section>
         </main>
-        <!-- <div id="focus-modal" class="modal">
-            <div class="modal-content"><span id="close-modal" class="close-btn">&times;</span>
-                <div id="focus-plot"></div>
-            </div>
-        </div> -->
+
 
 
     </div>
@@ -810,7 +943,94 @@
         }
         checkLoginStatus();
 
+
+        // This REPLACES your old openPaymentPopup function
+        async function openPaymentPopup() {
+            // This check will now work because CURRENT_USER is set by updateAuthStatus
+            if (!CURRENT_USER) {
+                alert("Please log in to buy credits.");
+                return;
+            }
+
+            try {
+                // --- STEP 1: Create the Order from YOUR backend ---
+                // We will add this '/api/create-order' route to auth.py next
+                const orderResponse = await fetch('/api/create-order', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        amount: 1, // Amount in INR
+                        currency: 'INR'
+                    })
+                });
+
+                if (!orderResponse.ok) {
+                    throw new Error('Failed to create payment order.');
+                }
+
+                const order = await orderResponse.json();
+
+                // --- STEP 2: Configure Razorpay Options ---
+                const options = {
+                    "key": order.key_id, // Use the public key from your backend
+                    "amount": order.amount,
+                    "currency": order.currency,
+                    "order_id": order.order_id,
+                    "name": "Morph-AI-Era",
+                    "description": "Buy 50 Credits",
+                    "handler": async function (response) {
+                        try {
+                            // --- STEP 3: Verify the Payment with YOUR backend ---
+                            // We will add this '/api/verify-payment' route to auth.py next
+                            const verifyResponse = await fetch('/api/verify-payment', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    razorpay_order_id: response.razorpay_order_id,
+                                    razorpay_payment_id: response.razorpay_payment_id,
+                                    razorpay_signature: response.razorpay_signature,
+                                })
+                            });
+
+                            const verifyData = await verifyResponse.json();
+
+                            if (verifyData.status === 'success') {
+                                // --- STEP 4: Update UI ---
+                                alert('Payment Successful! 50 credits have been added.');
+                                CURRENT_CREDITS = verifyData.new_credits; // Get new total from backend
+                                updateCreditDisplay();
+                            } else {
+                                throw new Error(verifyData.error || 'Payment verification failed.');
+                            }
+
+                        } catch (error) {
+                            console.error('Verification Error:', error);
+                            alert('Payment was received but could not be verified. Please contact support.');
+                            _
+                        }
+                    },
+                    "prefill": {
+                        "email": CURRENT_USER.email,
+                        "name": CURRENT_USER.username
+                    },
+                    "theme": {
+                        "color": "#1E90FF"
+                    }
+                };
+
+                // --- STEP 5: Open the Popup ---
+                const rzp = new Razorpay(options);
+                rzp.open();
+
+            } catch (error) {
+                console.error('Payment Error:', error);
+                alert('Could not start payment. Please try again.');
+            }
+        }
+
         // --- Data & History Management ---
+        let CURRENT_CREDITS = 0; // Default to 0, will be fetched from backend
+        let CURRENT_USER = null; // Default to null
         let DATASET = [];
         let HEADERS = [];
         let AVAILABLE_METRICS = { numeric: [], categorical: [] };
@@ -822,6 +1042,84 @@
                 history.unshift({ timestamp: new Date().toISOString(), user, action, details, csv: localStorage.getItem('lastCSV') || '' });
                 localStorage.setItem('dashboardHistory', JSON.stringify(history.slice(0, 50))); // Keep last 50 entries
             } catch (e) { console.error("Could not log history:", e); }
+        }
+        // --- NEW: View Management ---
+        const VIEW_CONTROL_IDS = [
+            'metric-1', 'agg-1', 'metric-2', 'agg-2', 'metric-3', 'agg-3', 'metric-4', 'agg-4',
+            'u-type', 'u-metric', 'st-type', 'st-metric', 'pt-type', 'pt-metric',
+            'ovl-type-a', 'ovl-type-b'
+        ];
+
+        /**
+         * Populates the "Load View" dropdown with saved views from localStorage.
+         */
+        function updateViewDropdown() {
+            const allViews = JSON.parse(localStorage.getItem('dashboardViews')) || {};
+            const select = $('#load-view');
+
+            // Clear existing options, but keep the first "Load View" placeholder
+            select.innerHTML = '<option value="">Load View</option>';
+
+            for (const viewName in allViews) {
+                const option = document.createElement('option');
+                option.value = viewName;
+                option.textContent = viewName;
+                select.appendChild(option);
+            }
+        }
+
+        /**
+         * Saves the current state of all select dropdowns to localStorage.
+         */
+        function saveView() {
+            const viewName = prompt("Enter a name for this view:");
+            if (!viewName || viewName.trim() === "") {
+                return; // User cancelled or entered no name
+            }
+
+            const viewState = {};
+            for (const id of VIEW_CONTROL_IDS) {
+                if ($(`#${id}`)) {
+                    viewState[id] = $(`#${id}`).value;
+                }
+            }
+
+            let allViews = JSON.parse(localStorage.getItem('dashboardViews')) || {};
+            allViews[viewName.trim()] = viewState;
+            localStorage.setItem('dashboardViews', JSON.stringify(allViews));
+
+            updateViewDropdown(); // Refresh the list with the new view
+            alert('View "' + viewName.trim() + '" saved!');
+            logHistory("Save View", `Saved view: ${viewName.trim()}`);
+        }
+
+        /**
+         * Loads a saved view from localStorage and applies it to the dashboard.
+         */
+        function loadView() {
+            const viewName = $('#load-view').value;
+            if (!viewName) return; // Ignore if they re-select "Load View"
+
+            const allViews = JSON.parse(localStorage.getItem('dashboardViews')) || {};
+            const viewState = allViews[viewName];
+
+            if (!viewState) {
+                alert('Error: Could not find view "' + viewName + '"');
+                return;
+            }
+
+            // Apply the saved state to all controls
+            for (const id in viewState) {
+                if ($(`#${id}`)) {
+                    $(`#${id}`).value = viewState[id];
+                }
+            }
+
+            // IMPORTANT: Refresh the entire dashboard to show the loaded state
+            refreshAll();
+
+            $('#load-view').value = ''; // Reset the dropdown to the placeholder
+            logHistory("Load View", `Loaded view: ${viewName}`);
         }
 
         // --- Data Loading & Parsing ---
@@ -843,8 +1141,85 @@
         }
 
 
+        // --- NEW: Credit Management Functions (SUPABASE) ---
+        // let CURRENT_USER = null;
 
+        // async function initCredits() {
+        //     // Get the currently logged-in user from Supabase
+        //     const { data: { user } } = await supabase.auth.getUser();
 
+        //     if (user) {
+        //         // User is logged in
+        //         CURRENT_USER = user;
+
+        //         // Fetch their profile and credit count
+        //         let { data, error } = await supabase
+        //             .from('profiles')
+        //             .select('credits')
+        //             .eq('id', user.id) // 'id' must match the user's ID
+        //             .single(); // Get a single record
+
+        //         if (error) {
+        //             console.error('Error fetching profile:', error);
+        //             CURRENT_CREDITS = 0;
+        //         } else if (data) {
+        //             CURRENT_CREDITS = data.credits;
+        //         } else {
+        //             // This might be a new user, let's check
+        //             console.log('No profile found, checking... this should be handled by a trigger.');
+        //             CURRENT_CREDITS = 5; // Fallback
+        //         }
+
+        //     } else {
+        //         // User is a guest
+        //         CURRENT_USER = null;
+        //         CURRENT_CREDITS = 0; // Guests have 0 credits
+        //         alert("You are using as a guest. Please log in to use credits.");
+        //     } updateCreditDisplay();
+        // }
+
+        function updateCreditDisplay() {
+            const creditBox = $('.credit-display-box'); // Get the main box
+            const creditEl = $('#credit-count');
+
+            if (!creditBox || !creditEl) return;
+
+            creditEl.textContent = CURRENT_CREDITS; // Always set the number
+
+            if (CURRENT_CREDITS <= 0) {
+                creditBox.classList.add('show-box'); // Show the full box
+                creditEl.classList.add('no-credits'); // Make the '0' red
+            } else {
+                creditBox.classList.remove('show-box'); // Hide the full box
+                creditEl.classList.remove('no-credits'); // Make the number blue
+            }
+        }
+
+        // --- UPDATED useCredit function ---
+        // This now reports credit use to the backend
+        function useCredit() {
+            if (CURRENT_CREDITS <= 0) {
+                if (CURRENT_USER) {
+                    alert('You are out of credits! Please purchase more to continue.');
+                } else {
+                    alert('Please log in or sign up to use the app.');
+                }
+                return false; // Action is blocked
+            }
+
+            // 1. Subtract credits locally for instant UI update
+            CURRENT_CREDITS--;
+            updateCreditDisplay();
+
+            // 2. Asynchronously update the database
+            // We will add this '/api/use-credit' route to auth.py next
+            if (CURRENT_USER) {
+                fetch('/api/use-credit', { method: 'POST' })
+                    .catch(err => console.error("Error reporting credit usage:", err));
+            }
+
+            return true; // Action is allowed
+        }
         function updateCards() {
             for (let i = 1; i <= 4; i++) {
                 const metric = $(`#metric-${i}`).value;
@@ -1041,6 +1416,73 @@
             Plotly.react(plotId, traces, layout, { responsive: true, displayModeBar: false });
         }
 
+        function calculateRunningTotal() {
+        // --- CREDIT CHECK ADDED ---
+        if (!useCredit()) {
+            return; // Stop if no credits
+        } 
+            const metric = $('#u-metric').value;
+            if (!metric) {
+                alert("Please select a metric in the 'Interactive Chart' panel first.");
+                return;
+            }
+
+            if (!AVAILABLE_METRICS.numeric.includes(metric)) {
+                alert("Running total can only be calculated for a numeric metric.");
+                return;
+            }
+
+            // Try to find a 'Date' column, otherwise use the first categorical column
+            let sortColumn = HEADERS.find(h => h.toLowerCase() === 'date');
+            if (!sortColumn) {
+                sortColumn = AVAILABLE_METRICS.categorical[0];
+            }
+
+            if (!sortColumn) {
+                alert("Cannot calculate running total without a date or categorical column to sort by.");
+                return;
+            }
+
+            // Create a copy of the data and sort it
+            const sortedData = [...DATASET].sort((a, b) => {
+                if (a[sortColumn] < b[sortColumn]) return -1;
+                if (a[sortColumn] > b[sortColumn]) return 1;
+                return 0;
+            });
+
+            // Calculate the running total
+            let runningSum = 0;
+            const labels = [];
+            const values = [];
+
+            for (const row of sortedData) {
+                const value = row[metric] || 0; // Get the value, default to 0
+                runningSum += value;
+
+                labels.push(row[sortColumn]);
+                values.push(runningSum);
+            }
+
+            // Draw the new chart on the main plot
+            const trace = {
+                type: 'scatter',
+                mode: 'lines+markers',
+                x: labels,
+                y: values,
+                name: `Running Total (${metric})`,
+                fill: 'tozeroy' // Fills the area under the line
+            };
+
+            // Get the standard layout and update the title
+            const layout = plotlyLayout(`Running Total of ${metric} (by ${sortColumn})`);
+
+            Plotly.react('main-plot', [trace], layout, { responsive: true, displayModeBar: false });
+
+            // Set the main chart's type dropdown to "line" so it matches what is shown
+            $('#u-type').value = 'line';
+
+            logHistory("Calculate Running Total", `Metric: ${metric}, Sorted by: ${sortColumn}`);
+        }
         // --- UI & Control Functions ---
         function loadSummary() {
             if (DATASET.length === 0) return;
@@ -1078,28 +1520,51 @@
             if (HEADERS.includes('Profit')) $('#pt-metric').value = 'Profit';
         }
 
-        // This function will run on every page load to check the real login status
-        async function updateUserStatus() {
-            const authLinksDiv = document.getElementById('authLinks');
+
+        // This function REPLACES both checkLoginStatus and initCredits
+        async function updateAuthStatus() {
             const userStatusP = document.getElementById('userStatus');
+            const authLinksDiv = document.getElementById('authLinks');
 
             try {
-                const response = await fetch("/users/me");
-                const data = await response.json();
+                // This calls your Python backend's /users/me endpoint
+                const response = await fetch('/users/me');
+                const user = await response.json();
 
-                if (data.loggedIn) {
-                    userStatusP.textContent = `Logged in as: ${data.username}`;
+                if (user.loggedIn) {
+                    // User IS logged in
+                    userStatusP.textContent = `Logged in as: ${user.username}`;
                     authLinksDiv.innerHTML = `<a href="/logout">Log Out</a>`;
+
+                    // --- THIS IS THE FIX ---
+                    // Set the global variables from the backend
+                    CURRENT_USER = user;
+                    CURRENT_CREDITS = user.credits || 0;
+                    // ---------------------
+
                 } else {
+                    // User is a GUEST
                     userStatusP.textContent = 'Using as: Guest';
                     authLinksDiv.innerHTML = `<a href="/login">Login</a> <a href="/signup">Sign Up</a>`;
+
+                    // --- THIS IS THE FIX ---
+                    CURRENT_USER = null;
+                    CURRENT_CREDITS = 0; // Guests have 0 credits
+                    // ---------------------
                 }
             } catch (error) {
-                console.error("Failed to check user status:", error);
-                userStatusP.textContent = 'Status unavailable';
-                authLinksDiv.innerHTML = `<a href="/login">Login</a>`;
+                console.error('Error checking login status:', error);
+                userStatusP.textContent = 'Error loading status';
+                authLinksDiv.innerHTML = `<a href="/login">Login</a> <a href="/signup">Sign Up</a>`;
+                CURRENT_USER = null;
+                CURRENT_CREDITS = 0;
             }
+
+            // After getting user info, update the credit display
+            updateCreditDisplay();
         }
+
+        updateAuthStatus();
 
         function drawMain() {
             drawChart('main-plot', $('#u-type').value, $('#u-metric').value);
@@ -1125,11 +1590,20 @@
                 Plotly.react('scatter-plot', traces, layout, { responsive: true, displayModeBar: false });
             }
         }
+        function drawMain() {
+            // --- CREDIT CHECK ADDED ---
+            if (!useCredit()) {
+                return; // Stop if no credits
+            }
+            // --- END CREDIT CHECK ---
+            drawChart('main-plot', $('#u-type').value, $('#u-metric').value);
+            logHistory("Update Chart", `Main chart to ${$('#u-type').value} for ${$('#u-metric').value}`);
+        }
 
         function refreshAll() {
             populateControls();
             updateCards(); // Changed from loadSummary()
-            drawMain();
+            drawChart('main-plot', $('#u-type').value, $('#u-metric').value);
             drawSalesTrend();
             drawProfitTrend();
             drawOverlay();
@@ -1137,38 +1611,75 @@
         }
 
         // --- Initial Load ---
-        // --- Initial Load ---
         (function () {
-            setupSidebar(); // <-- ADD THIS LINE
-            updateUserStatus(); // <-- ADD THIS LINE TOO
-
+            setupSidebar();
+            updateAuthStatus(); // THIS IS THE ONLY ONE YOU NEED
+            updateViewDropdown();
             $('#fileInput').addEventListener('change', (e) => {
                 const file = e.target.files[0];
                 if (!file) return;
+
+                // --- CREDIT CHECK FOR FILE UPLOAD ---
+                if (!useCredit()) {
+                    e.target.value = null; // Clear the file input
+                    return; // Stop if no credits
+                }
+                // --- END CREDIT CHECK ---
+
                 const reader = new FileReader();
                 reader.onload = (event) => {
                     const csvText = event.target.result;
                     parseCSV(csvText);
                     logHistory("File Upload", `Uploaded ${file.name}`);
-                    refreshAll();
+                    refreshAll(); // Refresh all charts with new data
                 };
                 reader.onerror = () => alert('Error reading file.');
                 reader.readAsText(file);
             });
 
             // --- UPDATED Event Listeners ---
+
+            // This button calls drawMain, which has the credit check
             $('#btnUpdate').addEventListener('click', drawMain);
-            $('#btnCalc').addEventListener('click', updateCards);
+
+            // This button has its own credit check
+            $('#btnCalc').addEventListener('click', () => {
+                // --- CREDIT CHECK FOR CALC METRICS ---
+                // if (!useCredit()) {
+                //     return; // Stop if no credits
+                // }
+                // --- END CREDIT CHECK ---
+                updateCards();
+            });
+
+
+            $('#buy-credits-link').addEventListener('click', (e) => {
+                e.preventDefault(); // Stop the link from trying to go anywhere
+                openPaymentPopup(); // Call our new payment function
+            });
+
+            $('#save-view').addEventListener('click', saveView);
+            $('#load-view').addEventListener('change', loadView);
+            // ---
+
+            // --- ADD THIS NEW LISTENER ---
+            $('#calc-running-total').addEventListener('click', calculateRunningTotal);
+
+
+            // This dropdown also calls drawMain, which has the credit check
             $$('#u-type, #u-metric').forEach(el => el.addEventListener('change', drawMain));
+
+            // These are free chart updates
             $$('#st-type, #st-metric').forEach(el => el.addEventListener('change', drawSalesTrend));
             $$('#pt-type, #pt-metric').forEach(el => el.addEventListener('change', drawProfitTrend));
             $$('#ovl-type-a, #ovl-type-b').forEach(el => el.addEventListener('change', drawOverlay));
             $('#sc-refresh').addEventListener('click', drawScatter);
             $$('.card-metric-select, .card-agg-select').forEach(el => el.addEventListener('change', updateCards));
 
-            // const defaultCSV = `Date,Region,Product,Sales,Profit,Units_Sold\n2023-01-15,North,Widgets,1500,300,15\n2024-01-20,North,Gadgets,1100,180,22\n2023-02-10,South,Widgets,2200,450,22\n2024-03-12,West,Widgets,1950,400,18`;
+            // --- Load Default Data ---
+            const defaultCSV = `Date,Region,Product,Sales,Profit,Units_Sold`;
             parseCSV(defaultCSV);
-            refreshAll();
+            refreshAll(); // <-- This runs on page load (no credits charged yet)
         })();
     </script>
 </body>

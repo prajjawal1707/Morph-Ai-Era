@@ -1,5 +1,3 @@
-#  1. IMPORTS
-
 from dotenv import load_dotenv
 load_dotenv()
 from app.api import upload, chart, auth, credits # <-- ADD 'credits' HERE
@@ -14,6 +12,23 @@ from app.api.auth import get_current_user # This imports your security guard
 # Local application imports
 from app.api import upload, chart, auth  # <-- This line now works because auth.py exists
 from app.services.file_handler import get_dataframe
+import razorpay
+from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel
+from razorpay.errors import SignatureVerificationError
+import os
+# 1. Define the data model for verification
+class PaymentVerification(BaseModel):
+    razorpay_order_id: str
+    razorpay_payment_id: str
+    razorpay_signature: str
+# from fastapi.responses import JSONResponse
+RAZORPAY_KEY_ID = os.environ.get('RAZORPAY_KEY_ID')
+RAZORPAY_KEY_SECRET = os.environ.get('RAZORPAY_KEY_SECRET')
+
+client = razorpay.Client(auth=(RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET))
+
+
 # =================================================================
 #  2. APP INITIALIZATION & CONFIGURATION
 # =================================================================
@@ -107,6 +122,9 @@ async def get_settings(request: Request):
 @app.get("/profile", response_class=HTMLResponse)
 async def get_profile(request: Request):
     return templates.TemplateResponse("profile.html", {"request": request})
+@app.get("/users/me")
+async def read_current_user():
+    return JSONResponse(content={"loggedIn": False})
 
 @app.get("/login", response_class=HTMLResponse)
 async def get_login(request: Request):
@@ -138,3 +156,49 @@ async def get_shipping_page(request: Request):
 @app.get("/contact", response_class=HTMLResponse)
 async def get_contact_page(request: Request):
     return templates.TemplateResponse("contact.html", {"request": request})
+
+# --- ADD THIS NEW ENDPOINT ---
+@app.post("/create-order")
+async def create_payment_order():
+    try:
+        # Create the order
+        # Amount is in paise, so ₹199.00 = 19900 paise
+        order_data = {
+            "amount": 19900,  
+            "currency": "INR",
+            "receipt": "receipt_#123",
+            "notes": {
+                "description": "50 Credits for Morph-AI-Era"
+            }
+        }
+        order = client.order.create(data=order_data)
+        
+        # Return the order ID and amount to the frontend
+        return {"id": order["id"], "amount": order["amount"], "currency": order["currency"]}
+        
+    except Exception as e:
+        print(f"Error creating order: {e}")
+        raise HTTPException(status_code=500, detail="Could not create payment order")
+# 2. ADD THIS NEW VERIFICATION ENDPOINT
+@app.post("/verify-payment")
+async def verify_payment(verification_data: PaymentVerification):
+    
+    # Create a dictionary of the payment data
+    params_dict = {
+        'razorpay_order_id': verification_data.razorpay_order_id,
+        'razorpay_payment_id': verification_data.razorpay_payment_id,
+        'razorpay_signature': verification_data.razorpay_signature
+    }
+
+    try:
+        client.utility.verify_payment_signature(params_dict)
+        print(f"Payment Verified: {verification_data.razorpay_payment_id}")
+        return {"status": "success", "message": "Payment verified successfully"}
+
+    except SignatureVerificationError as e:
+        print(f"Signature Verification Failed: {e}")
+        raise HTTPException(status_code=400, detail="Invalid payment signature")
+    except Exception as e:
+        print(f"Error verifying payment: {e}")
+        raise HTTPException(status_code=500, detail="Payment verification failed")
+    

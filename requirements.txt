@@ -7,7 +7,7 @@ supabase
 python-dotenv
 Jinja2
 requests
-razorpay  # <-- ADD THIS LINE
+razorpay  
 email-validator
 passlib
 bcrypt==3.2.0  
