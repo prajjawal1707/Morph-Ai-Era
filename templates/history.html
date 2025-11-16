@@ -442,25 +442,35 @@
         }
 
 
-        // --- Auth Logic (Simulated) ---
-        // --- Auth Logic (Simulated) ---
-        function checkLoginStatus() {
+        // --- REAL AUTH LOGIC ---
+        // This is the correct function from your dashboard.
+        async function checkLoginStatus() {
             const authLinksDiv = document.getElementById('authLinks');
             const userStatusP = document.getElementById('userStatus');
-            const isLoggedIn = false; // <<< In a real app, this value would come from your server
-            const username = "DemoUser";
 
-            if (isLoggedIn) {
-                userStatusP.textContent = `Logged in as: ${username}`;
-                authLinksDiv.innerHTML = `<a href="#">Log Out</a>`;
-            } else {
-                userStatusP.textContent = 'Using as: Guest';
-                authLinksDiv.innerHTML = `<a href="/login.html">Login</a> <a href="/signup.html">Sign Up</a>`;
+            try {
+                // This calls your Python backend
+                const response = await fetch('/users/me');
+                const user = await response.json();
+
+                if (user.loggedIn) {
+                    userStatusP.textContent = `Logged in as: ${user.username}`;
+                    authLinksDiv.innerHTML = `<a href="/logout">Log Out</a>`;
+                    return true; // <-- User IS logged in
+                } else {
+                    userStatusP.textContent = 'Using as: Guest';
+                    authLinksDiv.innerHTML = `<a href="/login">Login</a> <a href="/signup">Sign Up</a>`;
+                    return false; // <-- User is a GUEST
+                }
+            } catch (error) {
+                console.error('Error checking login status:', error);
+                userStatusP.textContent = 'Error loading status';
+                authLinksDiv.innerHTML = `<a href="/login">Login</a> <a href="/signup">Sign Up</a>`;
+                return false; // <-- Assume logged out on error
             }
-            return isLoggedIn;
         }
 
-        // --- History Display Logic ---
+        // --- History Display Logic (No changes) ---
         const historyBody = document.getElementById('history-body');
 
         function displayHistory() {
@@ -500,35 +510,38 @@
         function showLoginPrompt() {
             const mainContent = document.getElementById('main-content');
             mainContent.innerHTML = `
-                <div class="login-prompt">
-                    <h1 class="title">Login Required</h1>
-                    <p>
-                        You must be logged in to view your action history. Please log in or create an account to continue.
-                    </p>
-                    <div>
-                        <a href="/login" class="navbtn primary">Login</a>
-                        <a href="/signup" class="navbtn">Sign Up</a>
-                    </div>
+            <div class="login-prompt">
+                <h1 class="title">Login Required</h1>
+                <p>
+                    You must be logged in to view your action history. Please log in or create an account to continue.
+                </p>
+                <div>
+                    <a href="/login" class="navbtn primary">Login</a>
+                    <a href="/signup" class="navbtn">Sign Up</a>
                 </div>
-            `;
+            </div>
+        `;
         }
 
 
-        // --- Initial Load ---
-        (function () {
+        // --- Initial Load (MODIFIED for async) ---
+        (async function () { // <-- Made this an async function
             setupSidebar();
-            const isLoggedIn = checkLoginStatus();
+
+            // This now 'waits' for the fetch request to complete
+            const isLoggedIn = await checkLoginStatus(); // <-- Added 'await'
 
             if (isLoggedIn) {
+                // User is logged in, show the history table
                 displayHistory();
                 document.getElementById('clearHistoryBtn').addEventListener('click', () => {
-                    // Use a simple confirm dialog. In a real app, a custom modal is better.
                     if (window.confirm('Are you sure you want to clear all history? This cannot be undone.')) {
                         localStorage.removeItem('dashboardHistory');
                         displayHistory(); // Refresh the table
                     }
                 });
             } else {
+                // User is a guest, show the login prompt
                 showLoginPrompt();
             }
         })();
