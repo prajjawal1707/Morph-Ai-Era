@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://morph-ai-era.online/sitemap.xml

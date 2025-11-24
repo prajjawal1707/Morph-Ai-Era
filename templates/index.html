@@ -1,30 +1,56 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <title>My App</title>
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-K25LC6ESHG"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag() { dataLayer.push(arguments); }
+        gtag('js', new Date());
+
+        gtag('config', 'G-K25LC6ESHG');
+    </script>
     <style>
-        body { font-family: sans-serif; }
+        body {
+            font-family: sans-serif;
+        }
+
         .auth-container {
             position: absolute;
             top: 15px;
-            right: 20px; /* Changed from left to right for common UI practice */
+            right: 20px;
+            /* Changed from left to right for common UI practice */
         }
-        .auth-container a { margin-left: 10px; text-decoration: none; }
-        .content { text-align: center; margin-top: 80px; }
-        #userStatus { font-weight: bold; }
+
+        .auth-container a {
+            margin-left: 10px;
+            text-decoration: none;
+        }
+
+        .content {
+            text-align: center;
+            margin-top: 80px;
+        }
+
+        #userStatus {
+            font-weight: bold;
+        }
     </style>
 </head>
+
 <body>
 
     <div class="auth-container" id="authLinks">
-        </div>
+    </div>
 
     <div class="content">
         <h1>Welcome to the Application!</h1>
         <p id="userStatus">Loading user status...</p>
         <p>Only logged-in users will have their actions saved to history.</p>
-        
+
         <button id="actionButton">Perform an Action</button>
         <div id="responseMessage"></div>
     </div>
@@ -34,7 +60,7 @@
         window.addEventListener('load', async () => {
             const response = await fetch('/check-status');
             const data = await response.json();
-            
+
             const authLinksDiv = document.getElementById('authLinks');
             const userStatusP = document.getElementById('userStatus');
 
@@ -52,12 +78,13 @@
         // This is the same logic as before for the action button
         document.getElementById('actionButton').addEventListener('click', () => {
             fetch('/save-action', { method: 'POST' })
-            .then(res => res.json())
-            .then(data => {
-                document.getElementById('responseMessage').textContent = data.message;
-            });
+                .then(res => res.json())
+                .then(data => {
+                    document.getElementById('responseMessage').textContent = data.message;
+                });
         });
     </script>
 
 </body>
+
 </html>

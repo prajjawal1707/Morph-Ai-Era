@@ -5,6 +5,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MORPH-AI-ERA • Advanced Graphs</title>
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-K25LC6ESHG"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag() { dataLayer.push(arguments); }
+        gtag('js', new Date());
+
+        gtag('config', 'G-K25LC6ESHG');
+    </script>
     <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
     <style>
@@ -69,16 +78,37 @@
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
             gap: 20px;
         }
-        .single-card, .multi-row-card {
+
+        .single-card,
+        .multi-row-card {
             background: var(--panel);
             padding: 20px;
             border-radius: var(--radius);
             border: 1px solid var(--border);
         }
-        .single-card .value { font-size: 36px; font-weight: 800; color: var(--brand); }
-        .single-card .label { font-size: 14px; color: var(--muted); margin-top: 8px; }
-        .multi-row-card .row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--border); }
-        .multi-row-card .row:last-child { border-bottom: none; }
+
+        .single-card .value {
+            font-size: 36px;
+            font-weight: 800;
+            color: var(--brand);
+        }
+
+        .single-card .label {
+            font-size: 14px;
+            color: var(--muted);
+            margin-top: 8px;
+        }
+
+        .multi-row-card .row {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .multi-row-card .row:last-child {
+            border-bottom: none;
+        }
     </style>
 </head>
 
@@ -114,7 +144,7 @@
                 <option value="gauge">Gauge Chart</option>
                 <option value="combo">Combo (Line + Column)</option>
             </optgroup>
-             <optgroup label="Data Display">
+            <optgroup label="Data Display">
                 <option value="table">Table</option>
                 <option value="matrix">Matrix (Heatmap)</option>
                 <option value="cards-single">Cards (Single Metric)</option>
@@ -209,7 +239,7 @@
                     Plotly.newPlot(chartContainer, [{ x: mockData.months, y: mockData.sales, type: 'scatter', fill: 'tozeroy' }], plotlyLayout('Monthly Sales Trend (Area)'));
                     break;
                 case 'stacked-area':
-                     Plotly.newPlot(chartContainer, [
+                    Plotly.newPlot(chartContainer, [
                         { x: mockData.months, y: mockData.series.profit_2024, name: '2024 Profit', type: 'scatter', stackgroup: 'one' },
                         { x: mockData.months, y: mockData.series.profit_2025, name: '2025 Profit', type: 'scatter', stackgroup: 'one' }
                     ], plotlyLayout('Stacked Area Chart'));
@@ -223,14 +253,14 @@
                     Plotly.newPlot(chartContainer, [{ values: mockData.sales, labels: mockData.categories, type: 'pie', hole: 0.4 }], plotlyLayout('Sales Distribution'));
                     break;
                 case 'treemap':
-                     Plotly.newPlot(chartContainer, [{
+                    Plotly.newPlot(chartContainer, [{
                         type: "treemap",
                         labels: mockData.categories,
                         parents: ["", "", "", "", ""],
-                        values:  mockData.sales,
+                        values: mockData.sales,
                     }], plotlyLayout('Sales by Category Treemap'));
                     break;
-                
+
                 // Relational
                 case 'scatter':
                     Plotly.newPlot(chartContainer, [{ x: mockData.sales, y: mockData.profit, mode: 'markers', type: 'scatter' }], plotlyLayout('Sales vs. Profit'));
@@ -255,21 +285,21 @@
                     Plotly.newPlot(chartContainer, [{ type: 'indicator', mode: 'gauge+number', value: 85, gauge: { axis: { range: [null, 100] }, bar: { color: "dodgerblue" } } }], plotlyLayout('Customer Satisfaction'));
                     break;
                 case 'combo':
-                     Plotly.newPlot(chartContainer, [
+                    Plotly.newPlot(chartContainer, [
                         { x: mockData.months, y: mockData.series.sales_2024, name: 'Sales', type: 'bar' },
                         { x: mockData.months, y: mockData.series.profit_2024, name: 'Profit', type: 'scatter', mode: 'lines', yaxis: 'y2' }
                     ], { ...plotlyLayout('Sales and Profit Combo Chart'), yaxis2: { overlaying: 'y', side: 'right' } });
                     break;
 
                 // Data Display
-                 case 'table':
+                case 'table':
                     Plotly.newPlot(chartContainer, [{
                         type: 'table',
                         header: { values: ["Month", "Sales", "Profit"] },
                         cells: { values: [mockData.months, mockData.sales, mockData.profit] }
                     }], plotlyLayout('Data Table'));
                     break;
-                 case 'matrix':
+                case 'matrix':
                     Plotly.newPlot(chartContainer, [{
                         type: 'heatmap',
                         z: [[1, 20, 30], [20, 1, 60], [30, 60, 1]],
@@ -298,7 +328,7 @@
 
                 // Geographical
                 case 'map-scatter':
-                     Plotly.newPlot(chartContainer, [{
+                    Plotly.newPlot(chartContainer, [{
                         type: 'scattergeo',
                         lat: mockData.locations.lats,
                         lon: mockData.locations.lons,
@@ -309,7 +339,7 @@
                 case 'map-filled':
                     chartContainer.innerHTML = `<p style="text-align: center; padding-top: 50px;">Filled Maps (Choropleth) require specific GeoJSON data and more complex setup. This is a placeholder.</p>`;
                     break;
-                
+
                 // Placeholder for complex types
                 case 'decomposition-tree':
                     chartContainer.innerHTML = `<p style="text-align: center; padding-top: 50px;">Decomposition Trees are highly specialized and not a standard Plotly chart. This would require a dedicated library or custom SVG implementation.</p>`;

@@ -202,3 +202,16 @@ async def verify_payment(verification_data: PaymentVerification):
         print(f"Error verifying payment: {e}")
         raise HTTPException(status_code=500, detail="Payment verification failed")
     
+from fastapi.responses import FileResponse
+
+@app.get("/robots.txt")
+async def get_robots():
+    return FileResponse("robots.txt")
+
+# Add this import at the top
+from fastapi.responses import FileResponse
+
+# Add this route
+@app.get("/sitemap.xml")
+async def get_sitemap():
+    return FileResponse("sitemap.xml")

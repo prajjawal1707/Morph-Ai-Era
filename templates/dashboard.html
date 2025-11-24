@@ -4,8 +4,35 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MORPH-AI-ERA • Dashboard</title>
 
+    <title>Morph-AI-Era | Free Interactive Data Analytics Dashboard</title>
+    <meta name="description"
+        content="Morph-AI-Era is a free AI-powered tool to visualize CSV data instantly. Create interactive dashboards, track KPIs, and analyze sales trends without coding.">
+    <meta name="keywords"
+        content="Morph-AI-Era, Morph Era, Data Visualization, CSV to Graph, Free Dashboard, Python Analytics, Morph AI">
+    <meta name="author" content="Prajjawal">
+
+    <meta name="robots" content="index, follow">
+
+    <meta property="og:title" content="Morph-AI-Era - Visualize Data in Seconds">
+    <meta property="og:description"
+        content="Upload raw CSV files and get instant interactive charts and running totals. Free & Fast.">
+    <meta property="og:image" content="https://morph-ai-era.online/dashboard">
+    <meta property="og:url" content="https://morph-ai-era.online/dashboard">
+    <meta property="og:type" content="website">
+    <!-- for rank 1 code for bing and google -->
+    <meta name="msvalidate.01" content="B21B1E2975CAD87C47E22E64B36E9327" />
+    <meta name="google-site-verification" content="mzhPxtiTxOSOCeq957lXBCeF6MKTtpwC-qbByjFn774" />
+    <!-- <title>MORPH-AI-ERA • Dashboard</title> -->
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-K25LC6ESHG"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag() { dataLayer.push(arguments); }
+        gtag('js', new Date());
+
+        gtag('config', 'G-K25LC6ESHG');
+    </script>
     <!-- Icons & Plotly -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
     <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
@@ -1417,10 +1444,10 @@
         }
 
         function calculateRunningTotal() {
-        // --- CREDIT CHECK ADDED ---
-        if (!useCredit()) {
-            return; // Stop if no credits
-        } 
+            // --- CREDIT CHECK ADDED ---
+            if (!useCredit()) {
+                return; // Stop if no credits
+            }
             const metric = $('#u-metric').value;
             if (!metric) {
                 alert("Please select a metric in the 'Interactive Chart' panel first.");
