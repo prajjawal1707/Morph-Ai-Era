@@ -1,0 +1,1137 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MORPH-AI-ERA • Analytics</title>
+
+    <!-- Icons & Plotly -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+    <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+
+    <!-- PDF Generation Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
+
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-K25LC6ESHG"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag() { dataLayer.push(arguments); }
+        gtag('js', new Date());
+
+        gtag('config', 'G-K25LC6ESHG');
+    </script>
+    <style>
+        :root {
+            --bg: #0f1115;
+            --panel: #1b1f2a;
+            --panel-2: #111521;
+            --muted: #9aa4b2;
+            --text: #e7ecf3;
+            --brand: #1E90FF;
+            --radius: 14px;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            height: 100%;
+        }
+
+        body {
+            margin: 0;
+            background: var(--bg);
+            color: var(--text);
+            font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Inter, Arial, Apple Color Emoji, Segoe UI Emoji;
+        }
+
+        .wrap {
+            display: flex;
+            min-height: 100dvh;
+        }
+
+        .sidebar {
+            position: sticky;
+            top: 0;
+            left: 0;
+            height: 100vh;
+            width: 70px;
+            background: var(--panel-2);
+            border-right: 1px solid #202533;
+            padding: 14px 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            transition: width 0.25s ease;
+            z-index: 10;
+            overflow: hidden;
+        }
+
+        .sidebar.expanded {
+            width: 220px;
+            align-items: flex-start;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            background: #0c1a33;
+            border: 1px solid #1b2a44;
+            color: var(--brand);
+            font-weight: 700;
+            margin-bottom: 20px;
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+
+        .brand span {
+            margin-left: 10px;
+            font-size: 18px;
+            white-space: nowrap;
+            display: none;
+        }
+
+        .sidebar.expanded .brand span {
+            display: inline;
+        }
+
+        .sidebar .spacer {
+            flex-grow: 1;
+        }
+
+        .nav {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            width: 100%;
+            flex-shrink: 0;
+        }
+
+        .navbtn {
+            width: 100%;
+            height: 44px;
+            border-radius: 12px;
+            border: 1px solid #1e2534;
+            background: #0e1422;
+            color: #a9b3c3;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 0 12px;
+            cursor: pointer;
+            text-decoration: none;
+        }
+
+        .navbtn span {
+            display: none;
+            white-space: nowrap;
+        }
+
+        .sidebar.expanded .navbtn span {
+            display: inline;
+        }
+
+        .auth-status {
+            display: none;
+            padding: 15px;
+            margin-top: 15px;
+            border-top: 1px solid #202533;
+        }
+
+        .sidebar.expanded .auth-status {
+            display: block;
+        }
+
+        #userStatus {
+            font-size: 13px;
+            color: var(--muted);
+            margin: 0 0 10px 0;
+            white-space: nowrap;
+        }
+
+        #authLinks a {
+            color: var(--brand);
+            text-decoration: none;
+            font-size: 14px;
+            margin-right: 15px;
+            font-weight: 500;
+        }
+
+        #mobile-toggle {
+            position: fixed;
+            top: 14px;
+            left: 10px;
+            z-index: 1001;
+            display: none;
+            /* Hidden by default */
+        }
+
+        .main {
+            flex: 1;
+            padding: 24px;
+            overflow-x: hidden;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 24px;
+        }
+
+        .title {
+            text-align: left;
+            margin: 0;
+            font-size: 40px;
+            font-weight: 800;
+            color: #cfe5ff;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 18px;
+            margin-top: 18px;
+        }
+
+        .card {
+            background: linear-gradient(180deg, var(--panel), var(--panel-2));
+            border: 1px solid #212735;
+            border-radius: var(--radius);
+            padding: 18px 20px;
+            overflow: hidden;
+        }
+
+        .panel .head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+            color: #cfd8e6;
+            font-weight: 700;
+        }
+
+        .panel .head .controls {
+            display: flex;
+            gap: 10px;
+            align-items: center
+        }
+
+        .select,
+        .btn,
+        input[type="text"],
+        input[type="number"] {
+            height: 36px;
+            border-radius: 10px;
+            border: 1px solid #263048;
+            background: #12192b;
+            color: #e6edf6;
+            padding: 0 12px;
+            font-size: 14px;
+        }
+
+        .btn.primary {
+            background-color: var(--brand);
+            color: #e1e0e0;
+            cursor: pointer;
+            /* hover: underline; */
+        }
+
+        .select {
+            appearance: none;
+            padding-right: 26px;
+            background-image: linear-gradient(45deg, transparent 50%, #7f8aa0 50%), linear-gradient(135deg, #7f8aa0 50%, transparent 50%);
+            background-position: calc(100% - 16px) 50%, calc(100% - 11px) 50%;
+            background-size: 6px 6px, 6px 6px;
+            background-repeat: no-repeat;
+        }
+
+        .panel .controls {
+            flex-wrap: wrap;
+        }
+
+        .calc-group {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .plot {
+            width: 100%;
+            height: 400px;
+        }
+
+        .stats-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+
+        .stats-table th,
+        .stats-table td {
+            padding: 10px 12px;
+            text-align: left;
+            border-bottom: 1px solid #202533;
+        }
+
+        .stats-table th {
+            background-color: var(--panel-2);
+            color: #e7ecf3;
+        }
+
+        .stats-table td {
+            color: var(--muted);
+            font-size: 14px;
+        }
+
+        .kpi-container {
+            display: flex;
+            gap: 20px;
+            justify-content: space-around;
+            text-align: center;
+        }
+
+        .kpi-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--brand);
+        }
+
+        .kpi-label {
+            font-size: 0.9rem;
+            color: var(--muted);
+        }
+
+        /* Responsive */
+        @media (min-width: 1024px) {
+            .grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 768px) {
+            #mobile-toggle {
+                display: flex;
+            }
+
+            .wrap {
+                display: block;
+            }
+
+            .sidebar {
+                position: fixed;
+                width: 220px;
+                transform: translateX(-100%);
+                transition: transform 0.3s ease-in-out;
+                align-items: flex-start;
+            }
+
+            .sidebar.is-open {
+                transform: translateX(0);
+            }
+
+            .sidebar.is-open .brand span,
+            .sidebar.is-open .navbtn span {
+                display: inline;
+            }
+
+            .sidebar.is-open .auth-status {
+                display: block;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div id="mobile-toggle" class="brand">MAE</div>
+    <div class="wrap">
+        <aside class="sidebar" id="sidebar">
+            <div class="brand" id="toggleSidebar">MAE <span>MORPH-AI-ERA</span></div>
+            <nav class="nav">
+                <a href="/dashboard" class="navbtn"><i class="fa-solid fa-gauge-high"></i><span>Dashboard</span></a>
+                <a href="/analytics" class="navbtn"><i class="fa-solid fa-chart-line"></i><span>Analytics</span></a>
+                <a href="/history" class="navbtn"><i class="fa-regular fa-clock"></i><span>History</span></a>
+            </nav>
+            <div class="spacer"></div>
+            <nav class="nav">
+                <a href="/settings" class="navbtn" style="text-decoration: none;"><i
+                        class="fa-solid fa-gear"></i><span>Settings</span></a>
+                <a href="/profile" class="navbtn" style="text-decoration: none;"><i
+                        class="fa-regular fa-user"></i><span>Profile</span>
+                </a>
+            </nav>
+            <div class="auth-status">
+                <p id="userStatus">Loading status...</p>
+                <div id="authLinks"></div>
+            </div>
+        </aside>
+
+        <main class="main" id="main-content">
+            <div class="header">
+                <h1 class="title">Data Analytics</h1>
+                <button id="btn-download-pdf" class="btn primary"><i class="fa-solid fa-file-pdf"></i>&nbsp;Download
+                    PDF</button>
+            </div>
+
+            <div id="analytics-container">
+                <div class="card panel">
+                    <div class="head"><span>Global Filters</span></div>
+                    <div class="controls" id="global-filters">
+                        <!-- Filter dropdowns will be injected here -->
+                        <button id="btn-reset-filters" class="btn">Reset Filters</button>
+                    </div>
+                </div>
+                <div class="grid">
+                    <div class="card panel">
+                        <div class="head"><span>Automated Calculations</span></div>
+                        <div class="calc-group">
+                            <strong>Preparation:</strong>
+                            <button id="btn-clean-data" class="btn">Handle Missing Data</button>
+                            <button id="btn-time-intelligence" class="btn">Process Dates</button>
+                        </div>
+                        <div class="calc-group">
+                            <strong>Metrics:</strong>
+                            <button id="calc-profit-margin" class="btn">Profit Margin</button>
+                            <button id="calc-cogs" class="btn">COGS</button>
+                            <button id="calc-sales-per-unit" class="btn">Sales Per Unit</button>
+                        </div>
+                        <div class="calc-group">
+                            <strong>Time Series & Advanced:</strong>
+                            <button id="calc-yoy" class="btn">YoY Sales Growth</button>
+                            <button id="calc-moving-avg" class="btn">Moving Average (Sales)</button>
+                            <button id="calc-pareto" class="btn">Pareto Analysis (Sales)</button>
+                        </div>
+                    </div>
+                    <div class="card panel">
+                        <div class="head"><span>Key Performance Indicators (KPIs)</span></div>
+                        <div id="kpi-panel" class="kpi-container"></div>
+                    </div>
+                </div>
+                <div class="card panel" style="margin-top: 18px;">
+                    <div class="head"><span>Statistical Summary</span></div>
+                    <div style="overflow-x: auto; max-height: 400px;">
+                        <table id="stats-table-export" class="stats-table">
+                            <thead id="stats-head"></thead>
+                            <tbody id="stats-body"></tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="grid">
+                    <div class="card panel">
+                        <div class="head"><span>Correlation Matrix</span></div>
+                        <div id="correlation-plot" class="plot"></div>
+                    </div>
+                    <div class="card panel">
+                        <div class="head">
+                            <span>Distribution Analysis</span>
+                            <div class="controls">
+                                <select id="hist-type" class="select">
+                                    <option value="histogram">Histogram</option>
+                                    <option value="box">Box Plot</option>
+                                </select>
+                                <input type="number" id="hist-bins" value="20" class="select" style="width: 80px;"
+                                    title="Number of bins">
+                                <select id="hist-metric" class="select"></select>
+                            </div>
+                        </div>
+                        <div id="histogram-plot" class="plot"></div>
+                    </div>
+                    <div class="card panel">
+                        <div class="head">
+                            <span>Group-by Analysis</span>
+                            <div class="controls">
+                                <select id="group-by-cat" class="select"></select>
+                                <select id="group-by-num" class="select"></select>
+                                <select id="group-by-agg" class="select">
+                                    <option value="sum">Total</option>
+                                    <option value="mean">Average</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div id="groupby-plot" class="plot"></div>
+                    </div>
+                    <div class="card panel">
+                        <div class="head"><span>Pareto Analysis</span></div>
+                        <div id="pareto-plot" class="plot"></div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // --- Setup & Globals ---
+        const $ = q => document.querySelector(q);
+        let ORIGINAL_DATASET = [];
+        let DATASET = [];
+        let HEADERS = [];
+        let AVAILABLE_METRICS = {
+            numeric: [],
+            categorical: []
+        };
+
+        // --- Core Functions ---
+        function setupSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const desktopToggle = document.getElementById('toggleSidebar');
+            const mobileToggle = document.getElementById('mobile-toggle');
+
+            desktopToggle.addEventListener('click', () => {
+                if (window.innerWidth > 768) {
+                    sidebar.classList.toggle('expanded');
+                } else {
+                    sidebar.classList.remove('is-open');
+                }
+            });
+
+            mobileToggle.addEventListener('click', () => {
+                sidebar.classList.toggle('is-open');
+            });
+
+            document.addEventListener('click', (e) => {
+                if (window.innerWidth <= 768 && sidebar.classList.contains('is-open')) {
+                    if (!sidebar.contains(e.target) && e.target !== mobileToggle) {
+                        sidebar.classList.remove('is-open');
+                    }
+                }
+            });
+
+            sidebar.querySelectorAll('.navbtn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    if (window.innerWidth <= 768) {
+                        sidebar.classList.remove('is-open');
+                    }
+                });
+            });
+        }
+
+        function checkLoginStatus() {
+            const authLinksDiv = document.getElementById('authLinks');
+            const userStatusP = document.getElementById('userStatus');
+            const isLoggedIn = false;
+            const username = "DemoUser";
+
+            if (isLoggedIn) {
+                userStatusP.textContent = `Logged in as: ${username}`;
+                authLinksDiv.innerHTML = `<a href="#">Log Out</a>`;
+            } else {
+                userStatusP.textContent = 'Using as: Guest';
+                authLinksDiv.innerHTML = `<a href="#">Login</a> <a href="#">Sign Up</a>`;
+            }
+        }
+
+        function loadData() {
+            try {
+                const storedData = localStorage.getItem('dashboardData');
+                if (storedData) {
+                    const parsed = JSON.parse(storedData);
+                    DATASET = parsed.data;
+                    HEADERS = parsed.headers;
+                    return true;
+                }
+            } catch (e) {
+                console.error("Failed to load data from storage:", e);
+            }
+            return false;
+        }
+
+        function parseCSV(text) {
+            const lines = text.trim().split(/\r\n|\n/);
+            HEADERS = lines[0].split(',').map(h => h.trim());
+            DATASET = lines.slice(1).map(line => {
+                const values = line.split(',');
+                const obj = {};
+                HEADERS.forEach((header, i) => {
+                    const value = values[i] ? values[i].trim() : '';
+                    obj[header] = isNaN(value) || value === '' ? value : parseFloat(value);
+                });
+                return obj;
+            });
+        }
+
+        function updateMetrics() {
+            AVAILABLE_METRICS.numeric = HEADERS.filter(h => h && DATASET.length > 0 && typeof DATASET[0][h] === 'number');
+            AVAILABLE_METRICS.categorical = HEADERS.filter(h => h && DATASET.length > 0 && typeof DATASET[0][h] === 'string');
+        }
+
+        function addNewVariable(name, values) {
+            if (HEADERS.includes(name)) {
+                alert(`The variable "${name}" already exists.`);
+                return false;
+            }
+            HEADERS.push(name);
+            ORIGINAL_DATASET.forEach((row, i) => row[name] = values[i]);
+            alert(`New variable "${name}" was created successfully.`);
+            applyGlobalFilters();
+            return true;
+        }
+
+        const plotlyLayout = (title, extra_settings = {}) => ({
+            title: {
+                text: title,
+                font: {
+                    size: 16,
+                    color: '#dbe7ff'
+                }
+            },
+            paper_bgcolor: 'transparent',
+            plot_bgcolor: 'transparent',
+            margin: {
+                l: 50,
+                r: 25,
+                t: 40,
+                b: 40
+            },
+            xaxis: {
+                gridcolor: '#1d2738',
+                zeroline: false,
+                tickfont: {
+                    color: '#b9c7dd'
+                }
+            },
+            yaxis: {
+                gridcolor: '#1d2738',
+                zeroline: false,
+                tickfont: {
+                    color: '#b9c7dd'
+                }
+            },
+            showlegend: true,
+            legend: {
+                orientation: 'h',
+                y: -0.25,
+                font: {
+                    color: '#cbd6ea'
+                }
+            },
+            ...extra_settings
+        });
+        const showPlotMessage = (plotId, message) => $(`#${plotId}`).innerHTML = `<div style="display:flex; align-items:center; justify-content:center; height:100%; color:var(--muted); padding: 20px; text-align: center;">${message}</div>`;
+
+        // --- Analytics Calculations ---
+        function calculateDetailedStats() {
+            const head = $('#stats-head');
+            const body = $('#stats-body');
+            head.innerHTML = `<tr><th>Metric</th><th>Count</th><th>Mean</th><th>Std Dev</th><th>Min</th><th>25%</th><th>Median</th><th>75%</th><th>Max</th></tr>`;
+            body.innerHTML = '';
+            const percentile = (arr, p) => {
+                const sorted = arr.slice().sort((a, b) => a - b);
+                const pos = (sorted.length - 1) * p;
+                const base = Math.floor(pos);
+                const rest = pos - base;
+                return sorted[base + 1] !== undefined ? sorted[base] + rest * (sorted[base + 1] - sorted[base]) : sorted[base];
+            };
+            AVAILABLE_METRICS.numeric.forEach(metric => {
+                const values = DATASET.map(row => row[metric]).filter(v => typeof v === 'number');
+                if (values.length === 0) return;
+                const count = values.length;
+                const mean = values.reduce((a, b) => a + b, 0) / count;
+                const stdDev = Math.sqrt(values.map(x => Math.pow(x - mean, 2)).reduce((a, b) => a + b) / count);
+                const row = body.insertRow();
+                row.innerHTML = `<td>${metric}</td><td>${count}</td><td>${mean.toFixed(2)}</td><td>${stdDev.toFixed(2)}</td><td>${Math.min(...values)}</td><td>${percentile(values, 0.25).toFixed(2)}</td><td>${percentile(values, 0.5).toFixed(2)}</td><td>${percentile(values, 0.75).toFixed(2)}</td><td>${Math.max(...values)}</td>`;
+            });
+        }
+
+        function drawCorrelationMatrix() {
+            if (AVAILABLE_METRICS.numeric.length < 2) {
+                showPlotMessage('correlation-plot', 'At least two numeric columns are required.');
+                return;
+            }
+            const numericData = AVAILABLE_METRICS.numeric.map(metric => DATASET.map(row => row[metric]));
+            const correlationMatrix = [];
+
+            for (let i = 0; i < numericData.length; i++) {
+                const row = [];
+                for (let j = 0; j < numericData.length; j++) {
+                    if (i === j) {
+                        row.push(1);
+                        continue;
+                    }
+                    const x = numericData[i];
+                    const y = numericData[j];
+                    const n = x.length;
+                    const meanX = x.reduce((a, b) => a + b, 0) / n;
+                    const meanY = y.reduce((a, b) => a + b, 0) / n;
+                    const stdDevX = Math.sqrt(x.map(val => Math.pow(val - meanX, 2)).reduce((a, b) => a + b) / n);
+                    const stdDevY = Math.sqrt(y.map(val => Math.pow(val - meanY, 2)).reduce((a, b) => a + b) / n);
+                    let covariance = 0;
+                    for (let k = 0; k < n; k++) {
+                        covariance += (x[k] - meanX) * (y[k] - meanY);
+                    }
+                    covariance /= n;
+                    row.push(covariance / (stdDevX * stdDevY));
+                }
+                correlationMatrix.push(row);
+            }
+            const data = [{
+                z: correlationMatrix,
+                x: AVAILABLE_METRICS.numeric,
+                y: AVAILABLE_METRICS.numeric,
+                type: 'heatmap',
+                colorscale: 'Viridis',
+                hoverongaps: false
+            }];
+            Plotly.newPlot('correlation-plot', data, {
+                paper_bgcolor: 'transparent',
+                plot_bgcolor: 'transparent',
+                margin: {
+                    l: 70,
+                    r: 10,
+                    t: 20,
+                    b: 70
+                },
+                xaxis: {
+                    tickfont: {
+                        color: '#b9c7dd'
+                    }
+                },
+                yaxis: {
+                    tickfont: {
+                        color: '#b9c7dd'
+                    }
+                }
+            }, {
+                responsive: true
+            });
+        }
+
+        function drawDistributionHistogram() {
+            const metric = $('#hist-metric').value;
+            const type = $('#hist-type').value;
+            const bins = parseInt($('#hist-bins').value) || 20;
+            if (!metric) return;
+            const values = DATASET.map(row => row[metric]);
+            let trace = {};
+
+            if (type === 'histogram') {
+                trace = {
+                    x: values,
+                    type: 'histogram',
+                    nbinsx: bins,
+                    marker: {
+                        color: 'rgb(30, 144, 255)'
+                    }
+                };
+                $('#hist-bins').style.display = 'inline-block';
+            } else { // box plot
+                trace = {
+                    y: values,
+                    type: 'box',
+                    name: metric
+                };
+                $('#hist-bins').style.display = 'none';
+            }
+            Plotly.newPlot('histogram-plot', [trace], {
+                paper_bgcolor: 'transparent',
+                plot_bgcolor: 'transparent',
+                margin: {
+                    l: 50,
+                    r: 25,
+                    t: 40,
+                    b: 40
+                },
+                xaxis: {
+                    title: metric,
+                    gridcolor: '#1d2738',
+                    tickfont: {
+                        color: '#b9c7dd'
+                    }
+                },
+                yaxis: {
+                    gridcolor: '#1d2738',
+                    tickfont: {
+                        color: '#b9c7dd'
+                    }
+                }
+            }, {
+                responsive: true
+            });
+        }
+
+        function performGroupByAnalysis() {
+            const cat = $('#group-by-cat').value;
+            const num = $('#group-by-num').value;
+            const agg = $('#group-by-agg').value;
+            if (!cat || !num) return;
+            const groups = DATASET.reduce((acc, row) => {
+                const key = row[cat];
+                if (key) {
+                    if (!acc[key]) acc[key] = [];
+                    if (typeof row[num] === 'number') acc[key].push(row[num]);
+                }
+                return acc;
+            }, {});
+            const labels = Object.keys(groups);
+            const values = labels.map(label => {
+                const groupValues = groups[label];
+                if (groupValues.length === 0) return 0;
+                if (agg === 'sum') return groupValues.reduce((a, b) => a + b, 0);
+                return groupValues.reduce((a, b) => a + b, 0) / groupValues.length;
+            });
+            Plotly.newPlot('groupby-plot', [{
+                x: labels,
+                y: values,
+                type: 'bar'
+            }], {
+                paper_bgcolor: 'transparent',
+                plot_bgcolor: 'transparent',
+                margin: {
+                    l: 50,
+                    r: 25,
+                    t: 40,
+                    b: 40
+                },
+                xaxis: {
+                    title: cat,
+                    gridcolor: '#1d2738',
+                    tickfont: {
+                        color: '#b9c7dd'
+                    }
+                },
+                yaxis: {
+                    title: `${agg}(${num})`,
+                    gridcolor: '#1d2738',
+                    tickfont: {
+                        color: '#b9c7dd'
+                    }
+                }
+            }, {
+                responsive: true
+            });
+        }
+
+        function getSeries(metric) {
+            const labelCol = AVAILABLE_METRICS.categorical[0] || HEADERS[0];
+            return {
+                labels: DATASET.map(row => row[labelCol]),
+                values: DATASET.map(row => row[metric])
+            };
+        }
+
+        function handleMissingData() {
+            ORIGINAL_DATASET.forEach(row => {
+                AVAILABLE_METRICS.numeric.forEach(metric => {
+                    if (row[metric] === null || row[metric] === undefined || isNaN(row[metric])) {
+                        row[metric] = 0; // Fill with zero
+                    }
+                });
+            });
+            alert('Missing numerical data has been filled with 0.');
+            applyGlobalFilters();
+        }
+
+        function handleTimeIntelligence() {
+            const dateColumn = HEADERS.find(h => h.toLowerCase().includes('date'));
+            if (!dateColumn) {
+                alert('No date column found.');
+                return;
+            }
+            const newCols = {
+                Year: [],
+                Quarter: [],
+                Month: [],
+                DayOfWeek: []
+            };
+            const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+            ORIGINAL_DATASET.forEach(row => {
+                const date = new Date(row[dateColumn]);
+                if (!isNaN(date.getTime())) {
+                    newCols.Year.push(date.getFullYear());
+                    newCols.Quarter.push(Math.floor(date.getMonth() / 3) + 1);
+                    newCols.Month.push(date.getMonth() + 1);
+                    newCols.DayOfWeek.push(days[date.getDay()]);
+                } else {
+                    newCols.Year.push(null);
+                    newCols.Quarter.push(null);
+                    newCols.Month.push(null);
+                    newCols.DayOfWeek.push(null);
+                }
+            });
+            addNewVariable('Year', newCols.Year.map(String)); // Treat as categorical
+            addNewVariable('Quarter', newCols.Quarter.map(String));
+            addNewVariable('Month', newCols.Month.map(String));
+            addNewVariable('DayOfWeek', newCols.DayOfWeek);
+        }
+
+        function calculateProfitMargin() {
+            if (!HEADERS.includes('Sales') || !HEADERS.includes('Profit')) {
+                alert('Requires "Sales" and "Profit" columns.');
+                return;
+            }
+            const values = ORIGINAL_DATASET.map(row => row.Sales !== 0 ? (row.Profit / row.Sales) : 0);
+            addNewVariable('Profit_Margin', values);
+        }
+
+        function calculateCOGS() {
+            if (!HEADERS.includes('Sales') || !HEADERS.includes('Profit')) {
+                alert('Requires "Sales" and "Profit" columns.');
+                return;
+            }
+            const values = ORIGINAL_DATASET.map(row => row.Sales - row.Profit);
+            addNewVariable('COGS', values);
+        }
+
+        function calculateSalesPerUnit() {
+            if (!HEADERS.includes('Sales') || !HEADERS.includes('Units_Sold')) {
+                alert('Requires "Sales" and "Units_Sold" columns.');
+                return;
+            }
+            const values = ORIGINAL_DATASET.map(row => row.Units_Sold !== 0 ? (row.Sales / row.Units_Sold) : 0);
+            addNewVariable('Sales_Per_Unit', values);
+        }
+
+        function calculateYoYGrowth() {
+            $('#kpi-panel').innerHTML = ''; // Clear first
+            if (!HEADERS.includes('Year') || !HEADERS.includes('Sales')) {
+                alert('Requires "Year" and "Sales" columns. Run "Process Dates" first.');
+                return;
+            }
+            const salesByYear = ORIGINAL_DATASET.reduce((acc, row) => {
+                const year = row.Year;
+                if (year) {
+                    acc[year] = (acc[year] || 0) + row.Sales;
+                }
+                return acc;
+            }, {});
+            const years = Object.keys(salesByYear).sort();
+            if (years.length < 2) {
+                alert('Not enough yearly data for YoY Growth.');
+                return;
+            }
+            const latestYear = years[years.length - 1];
+            const previousYear = years[years.length - 2];
+            const yoyGrowth = ((salesByYear[latestYear] - salesByYear[previousYear]) / salesByYear[previousYear]) * 100;
+            updateKpiPanel({
+                'YoY Sales Growth': `${yoyGrowth.toFixed(2)}%`
+            });
+        }
+
+        function calculateMovingAverage() {
+            if (!HEADERS.includes('Sales')) {
+                alert('Requires "Sales" column.');
+                return;
+            }
+            const windowSize = parseInt(prompt("Enter moving average window size (e.g., 3):", "3"));
+            if (isNaN(windowSize) || windowSize < 1) return;
+            const values = [];
+            for (let i = 0; i < ORIGINAL_DATASET.length; i++) {
+                if (i < windowSize - 1) {
+                    values.push(null);
+                } else {
+                    let sum = 0;
+                    for (let j = 0; j < windowSize; j++) {
+                        sum += ORIGINAL_DATASET[i - j].Sales;
+                    }
+                    values.push(sum / windowSize);
+                }
+            }
+            addNewVariable(`Sales_MA_${windowSize}`, values);
+        }
+
+        function calculatePareto() {
+            if (!HEADERS.includes('Product') || !HEADERS.includes('Sales')) {
+                alert('Requires "Product" and "Sales" columns.');
+                return;
+            }
+            const salesByProduct = ORIGINAL_DATASET.reduce((acc, row) => {
+                acc[row.Product] = (acc[row.Product] || 0) + row.Sales;
+                return acc;
+            }, {});
+            const sortedProducts = Object.entries(salesByProduct).sort(([, a], [, b]) => b - a);
+            const totalSales = sortedProducts.reduce((sum, [, sales]) => sum + sales, 0);
+            let cumulativeSales = 0;
+            const paretoData = sortedProducts.map(([, sales]) => {
+                cumulativeSales += sales;
+                return (cumulativeSales / totalSales) * 100;
+            });
+            const paretoMap = new Map(sortedProducts.map(([product], i) => [product, paretoData[i]]));
+            const paretoColumn = ORIGINAL_DATASET.map(row => paretoMap.get(row.Product));
+            if (addNewVariable('Pareto_Percent', paretoColumn)) {
+                drawParetoChart();
+            }
+        }
+
+        function drawParetoChart() {
+            if (!HEADERS.includes('Pareto_Percent')) {
+                showPlotMessage('pareto-plot', 'Run Pareto Analysis calculation first.');
+                return;
+            }
+            const salesByProduct = DATASET.reduce((acc, row) => {
+                acc[row.Product] = (acc[row.Product] || 0) + row.Sales;
+                return acc;
+            }, {});
+            const sorted = Object.entries(salesByProduct).sort(([, a], [, b]) => b - a);
+            const labels = sorted.map(([product]) => product);
+            const salesValues = sorted.map(([, sales]) => sales);
+            let cumulative = 0;
+            const cumulativePercent = salesValues.map(sale => {
+                cumulative += sale;
+                return (cumulative / salesValues.reduce((a, b) => a + b, 0)) * 100;
+            });
+            const trace1 = {
+                x: labels,
+                y: salesValues,
+                type: 'bar',
+                name: 'Sales'
+            };
+            const trace2 = {
+                x: labels,
+                y: cumulativePercent,
+                type: 'scatter',
+                mode: 'lines',
+                name: 'Cumulative %',
+                yaxis: 'y2'
+            };
+            const layout = {
+                ...plotlyLayout('Pareto Analysis'),
+                yaxis2: {
+                    title: 'Cumulative %',
+                    overlaying: 'y',
+                    side: 'right',
+                    range: [0, 105]
+                }
+            };
+            Plotly.newPlot('pareto-plot', [trace1, trace2], layout, {
+                responsive: true
+            });
+        }
+
+        async function generatePDF() { /* ... implementation ... */ }
+
+        // --- UI & Control Functions ---
+        function updateKpiPanel(extraKpis = {}) {
+            const kpiPanel = $('#kpi-panel');
+            kpiPanel.innerHTML = '';
+
+            if (DATASET.length === 0) {
+                kpiPanel.innerHTML = '<p class="kpi-label">No data to display KPIs.</p>';
+                return;
+            }
+
+            const kpis = {};
+            kpis['Total Records'] = DATASET.length;
+            if (HEADERS.includes('Sales')) {
+                kpis['Total Sales'] = '$' + DATASET.reduce((sum, row) => sum + (row.Sales || 0), 0).toLocaleString();
+            }
+            if (HEADERS.includes('Profit')) {
+                const totalProfit = DATASET.reduce((sum, row) => sum + (row.Profit || 0), 0);
+                kpis['Average Profit'] = '$' + (totalProfit / DATASET.length).toFixed(2);
+            }
+
+            const finalKpis = {
+                ...kpis,
+                ...extraKpis
+            };
+
+            for (const label in finalKpis) {
+                kpiPanel.innerHTML += `<div><div class="kpi-value">${finalKpis[label]}</div><div class="kpi-label">${label}</div></div>`;
+            }
+        }
+
+        function populateControls() {
+            const numericOptions = AVAILABLE_METRICS.numeric.map(c => `<option value="${c}">${c}</option>`).join('');
+            $('#hist-metric').innerHTML = numericOptions;
+            $('#group-by-cat').innerHTML = AVAILABLE_METRICS.categorical.map(c => `<option value="${c}">${c}</option>`).join('');
+            $('#group-by-num').innerHTML = numericOptions;
+
+            const filterContainer = $('#global-filters');
+            const resetButton = $('#btn-reset-filters');
+
+            [...filterContainer.children].forEach(child => {
+                if (child.tagName === 'LABEL' || child.tagName === 'SELECT') {
+                    child.remove();
+                }
+            });
+
+            AVAILABLE_METRICS.categorical.forEach(cat => {
+                const label = document.createElement('label');
+                label.textContent = cat;
+                const select = document.createElement('select');
+                select.id = `filter-${cat}`;
+                select.className = 'select';
+                const uniqueValues = [...new Set(ORIGINAL_DATASET.map(row => row[cat]).filter(v => v != null))];
+                select.innerHTML = `<option value="">All</option>` + uniqueValues.map(v => `<option value="${v}">${v}</option>`).join('');
+                select.addEventListener('change', applyGlobalFilters);
+                filterContainer.prepend(select);
+                filterContainer.prepend(label);
+            });
+        }
+
+        function applyGlobalFilters() {
+            DATASET = [...ORIGINAL_DATASET];
+            AVAILABLE_METRICS.categorical.forEach(cat => {
+                const filterValue = $(`#filter-${cat}`).value;
+                if (filterValue) {
+                    DATASET = DATASET.filter(row => row[cat] == filterValue);
+                }
+            });
+            refreshAnalytics();
+        }
+
+        function resetFilters() {
+            $$('#global-filters select').forEach(sel => sel.value = "");
+            DATASET = [...ORIGINAL_DATASET];
+            refreshAnalytics();
+        }
+
+        function refreshAnalytics() {
+            updateMetrics();
+            updateKpiPanel();
+            calculateDetailedStats();
+            drawCorrelationMatrix();
+            drawDistributionHistogram();
+            performGroupByAnalysis();
+            drawParetoChart();
+        }
+
+        // --- Initial Load ---
+        (function () {
+            setupSidebar();
+            checkLoginStatus();
+            if (!loadData()) {
+                const defaultCSV = `Date,Region,Product,Sales,Profit,Units_Sold\n2023-01-15,North,Widgets,1500,300,15\n2024-01-20,North,Gadgets,1100,180,22\n2023-02-10,South,Widgets,2200,450,22\n2024-03-12,West,Widgets,1950,400,18`;
+                parseCSV(defaultCSV);
+            }
+            ORIGINAL_DATASET = JSON.parse(JSON.stringify(DATASET));
+
+            updateMetrics();
+            populateControls();
+            refreshAnalytics();
+
+            // Event Listeners
+            $('#hist-metric').addEventListener('change', drawDistributionHistogram);
+            $('#hist-type').addEventListener('change', drawDistributionHistogram);
+            $('#hist-bins').addEventListener('input', drawDistributionHistogram);
+            $('#group-by-cat').addEventListener('change', performGroupByAnalysis);
+            $('#group-by-num').addEventListener('change', performGroupByAnalysis);
+            $('#group-by-agg').addEventListener('change', performGroupByAnalysis);
+            $('#btn-reset-filters').addEventListener('click', resetFilters);
+            $('#btn-generate-insights').addEventListener('click', generateInsights);
+
+            // Calculation buttons
+            $('#btn-clean-data').addEventListener('click', handleMissingData);
+            $('#btn-time-intelligence').addEventListener('click', handleTimeIntelligence);
+            $('#calc-profit-margin').addEventListener('click', calculateProfitMargin);
+            $('#calc-cogs').addEventListener('click', calculateCOGS);
+            $('#calc-sales-per-unit').addEventListener('click', calculateSalesPerUnit);
+            $('#calc-yoy').addEventListener('click', calculateYoYGrowth);
+            $('#calc-moving-avg').addEventListener('click', calculateMovingAverage);
+            $('#calc-pareto').addEventListener('click', calculatePareto);
+            $('#btn-download-pdf').addEventListener('click', generatePDF);
+        })();
+    </script>
+</body>
+
+</html>

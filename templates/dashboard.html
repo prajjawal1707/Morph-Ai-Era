@@ -37,6 +37,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
     <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
     <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+    <script src="https://unpkg.com/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js"></script>
     <style>
         /* This defines the light theme variables. */
         .light-mode {
@@ -570,6 +571,19 @@
             }
         }
 
+        @media print {
+
+            .card,
+            .panel,
+            .plot,
+            .grid,
+            .metrics {
+                break-inside: avoid;
+                page-break-inside: avoid;
+            }
+        }
+
+
         /* Mobile specific sidebar */
         @media (max-width: 768px) {
             #mobile-toggle {
@@ -723,16 +737,22 @@
                 <div class="group"><span class="label">Views</span><select id="load-view" class="select">
                         <option value="">Load View</option>
                     </select><button id="save-view" class="btn">Save View</button></div>
-                <div style="flex:1"></div>
+
+                <!-- <div style="flex:1"></div>
                 <div class="group" id="filter-status" style="display:none;"><span class="label">Filters
-                        Active!</span><button id="clear-filters" class="btn">Clear Filters</button></div>
+                        Active!</span><button id="clear-filters" class="btn">Clear Filters</button></div> -->
                 <div class="group"><button id="calc-running-total" class="btn">Running Total</button></div>
                 <div class="group">
                     <button id="btnUpdate" class="btn primary"><i class="fa-solid fa-rotate"></i>&nbsp;Update
                         Chart</button>
                     <button id="btnCalc" class="btn success"><i class="fa-solid fa-calculator"></i>&nbsp;Calculate
                         Metrics</button>
+                    <button id="btn-download-pdf" class="btn primary"
+                        style="background: #1E90FF; border:none; display:flex; align-items:center; gap:8px;">
+                        <i class="fa-solid fa-file-pdf"></i> Download Smart PDF
+                    </button>
                 </div>
+
             </section>
 
             <section class="card panel" style="padding:14px;">
@@ -741,46 +761,47 @@
                     <div class="controls">
                         <select id="u-type" class="select">
                             <optgroup label="Bar & Column">
-                                <option value="bar-h">Bar Chart (Horizontal)</option>
-                                <option value="bar">Column Chart (Vertical)</option>
-                                <option value="clustered-column">Clustered Column</option>
-                                <option value="stacked-bar">Stacked Bar</option>
-                                <option value="stacked-column">Stacked Column</option>
-                            </optgroup>
-                            <optgroup label="Line & Area">
-                                <option value="line">Line Chart</option>
-                                <option value="area">Area Chart</option>
-                                <option value="stacked-area">Stacked Area Chart</option>
-                            </optgroup>
-                            <optgroup label="Proportional">
-                                <option value="pie">Pie Chart</option>
-                                <option value="donut">Donut Chart</option>
-                                <option value="treemap">Tree Map</option>
-                                <option value="sunburst">Sunburst Chart</option>
-                            </optgroup>
-                            <optgroup label="Relational">
-                                <option value="scatter">Scatter Chart</option>
-                                <option value="bubble">Bubble Chart</option>
-                                <option value="box">Box Plot</option>
-                                <option value="violin">Violin Plot</option>
-                            </optgroup>
-                            <optgroup label="Specialized">
-                                <option value="waterfall">Waterfall Chart</option>
-                                <option value="funnel">Funnel Chart</option>
-                                <option value="gauge">Gauge Chart</option>
-                            </optgroup>
-                            <optgroup label="Data Display">
-                                <option value="heatmap">Matrix (Heatmap)</option>
-                            </optgroup>
-                            <optgroup label="Geographical">
-                                <option value="choropleth">Filled Map (Choropleth)</option>
-                            </optgroup>
-                            <optgroup label="Hierarchical">
-                                <option value="decomposition-tree">Decomposition Tree</option>
-                            </optgroup>
-                            <optgroup label="Combo">
-                                <option value="combo">Combo (Line + Column)</option>
-                            </optgroup>
+                                                <option value="bar-horizontal">Bar Chart (Horizontal)</option>
+                                                <option value="column-vertical">Column Chart (Vertical)</option>
+                                                <option value="clustered-column">Clustered Column Chart</option>
+                                                <option value="stacked-bar">Stacked Bar Chart</option>
+                                                <option value="stacked-column">Stacked Column Chart</option>
+                                            </optgroup>
+                                        <optgroup label="Line & Area">
+                                                <option value="line">Line Chart</option>
+                                                <option value="area">Area Chart</option>
+                                                <option value="stacked-area">Stacked Area Chart</option>
+                                            </optgroup>
+                                        <optgroup label="Proportional">
+                                                <option value="pie">Pie Chart</option>
+                                                <option value="donut">Donut Chart</option>
+                                                <option value="treemap">Tree Map</option>
+                                            </optgroup>
+                                        <optgroup label="Relational">
+                                                <option value="scatter">Scatter Chart</option>
+                                                <option value="bubble">Bubble Chart</option>
+                                            </optgroup>
+                                        <optgroup label="Specialized">
+                                                <option value="waterfall">Waterfall Chart</option>
+                                                <option value="funnel">Funnel Chart</option>
+                                                <option value="gauge">Gauge Chart</option>
+                                                <option value="combo">Combo (Line + Column)</option>
+                                            </optgroup>
+                                         <optgroup label="Data Display">
+                                                <option value="table">Table</option>
+                                                <option value="matrix">Matrix (Heatmap)</option>
+                                                <option value="cards-single">Cards (Single Metric)</option>
+                                                <option value="multi-row-card">Multi Row Card</option>
+                                            </optgroup>
+                                        <optgroup label="Geographical">
+                                                <option value="map-scatter">Map (Scatter Plot)</option>
+                                                <option value="map-filled">Filled Map (Choropleth)</option>
+                                            </optgroup>
+                                        <optgroup label="Hierarchical">
+                                                <option value="decomposition-tree">Decomposition Tree (Placeholder)
+                                </option>
+                                            </optgroup>
+                                   
                         </select>
                         <select id="u-metric" class="select"></select>
                     </div>
@@ -1167,44 +1188,6 @@
             localStorage.setItem('lastCSV', text); // Save raw CSV for history
         }
 
-
-        // --- NEW: Credit Management Functions (SUPABASE) ---
-        // let CURRENT_USER = null;
-
-        // async function initCredits() {
-        //     // Get the currently logged-in user from Supabase
-        //     const { data: { user } } = await supabase.auth.getUser();
-
-        //     if (user) {
-        //         // User is logged in
-        //         CURRENT_USER = user;
-
-        //         // Fetch their profile and credit count
-        //         let { data, error } = await supabase
-        //             .from('profiles')
-        //             .select('credits')
-        //             .eq('id', user.id) // 'id' must match the user's ID
-        //             .single(); // Get a single record
-
-        //         if (error) {
-        //             console.error('Error fetching profile:', error);
-        //             CURRENT_CREDITS = 0;
-        //         } else if (data) {
-        //             CURRENT_CREDITS = data.credits;
-        //         } else {
-        //             // This might be a new user, let's check
-        //             console.log('No profile found, checking... this should be handled by a trigger.');
-        //             CURRENT_CREDITS = 5; // Fallback
-        //         }
-
-        //     } else {
-        //         // User is a guest
-        //         CURRENT_USER = null;
-        //         CURRENT_CREDITS = 0; // Guests have 0 credits
-        //         alert("You are using as a guest. Please log in to use credits.");
-        //     } updateCreditDisplay();
-        // }
-
         function updateCreditDisplay() {
             const creditBox = $('.credit-display-box'); // Get the main box
             const creditEl = $('#credit-count');
@@ -1309,120 +1292,272 @@
             }
         }
 
+        // --- FINAL CORRECTED CHART LOGIC ---
         function generateTracesAndLayout(type, metric) {
-            if (!metric) { return { error: 'Please select a metric.' }; }
+            // 1. Handling Table/Cards without requiring a metric selection first
+            if (!metric && !type.includes('table') && !type.includes('card')) {
+                return { error: 'Please select a metric.' };
+            }
+
             let traces = [];
             let layout = plotlyLayout(metric);
+
+            // Helper to get series data
+            const getSeriesData = (m) => getSeries(m);
+
             try {
                 switch (type) {
-                    case 'line': case 'bar': case 'area': {
-                        const { labels, values } = getSeries(metric);
-                        if (type === 'area') {
-                            traces.push({ type: 'scatter', x: labels, y: values, name: metric, mode: 'lines', fill: 'tozeroy' });
-                        } else {
-                            traces.push({ type: type, x: labels, y: values, name: metric });
-                        }
+                    // ============================================================
+                    // 1. BAR & COLUMN (Supports BOTH old and new names)
+                    // ============================================================
+                    case 'bar':             // Old name (for small graphs)
+                    case 'column-vertical': // New name (for main graph)
+                    case 'clustered-column':
+                        var { labels, values } = getSeriesData(metric);
+                        traces.push({ type: 'bar', x: labels, y: values, name: metric });
                         break;
-                    }
-                    case 'bar-h': {
-                        const { labels, values } = getSeries(metric);
+
+                    case 'bar-h':            // Old name
+                    case 'bar-horizontal':   // New name
+                        var { labels, values } = getSeriesData(metric);
                         traces.push({ type: 'bar', x: values, y: labels, orientation: 'h', name: metric });
                         break;
-                    }
+
+                    case 'stacked-column':
                     case 'stacked-bar':
-                    case 'stacked-area': case 'clustered-column': case 'stacked-column': {
-                        if (!HEADERS.includes('Sales') || !HEADERS.includes('Profit')) { return { error: 'This chart requires "Sales" and "Profit" columns.' }; }
-                        const sales = getSeries('Sales'); const profit = getSeries('Profit');
-                        if (type === 'stacked-area') {
-                            traces.push({ type: 'scatter', x: sales.labels, y: sales.values, name: 'Sales', fill: 'tozeroy', mode: 'none' });
-                            traces.push({ type: 'scatter', x: profit.labels, y: profit.values, name: 'Profit', fill: 'tonexty', mode: 'none' });
-                        } else {
-                            traces.push({ type: 'bar', x: sales.labels, y: sales.values, name: 'Sales' });
-                            traces.push({ type: 'bar', x: profit.labels, y: profit.values, name: 'Profit' });
-                            layout.barmode = type.includes('stack') ? 'stack' : 'group';
-                            if (type === 'stacked-bar') { traces.forEach(t => t.orientation = 'h'); }
-                        }
-                        break;
-                    }
-                    case 'pie': case 'donut': {
-                        const { labels, values } = getSeries(metric);
-                        traces.push({ type: 'pie', labels, values, hole: type === 'donut' ? 0.5 : 0, textinfo: 'percent', insidetextorientation: 'radial' });
-                        break;
-                    }
-                    case 'scatter': case 'bubble': {
-                        if (!HEADERS.includes('Sales') || !HEADERS.includes('Profit')) { return { error: 'Requires "Sales" and "Profit" columns.' }; }
-                        const sales = getSeries('Sales'); const profit = getSeries('Profit');
-                        const bubbleSizes = type === 'bubble' ? profit.values.map(p => Math.max(Math.abs(p) / 50, 10)) : 12;
-                        traces.push({ type: 'scatter', x: sales.values, y: profit.values, mode: 'markers', marker: { size: bubbleSizes, color: profit.values, colorscale: 'Viridis', showscale: true } });
-                        layout.xaxis.title = 'Sales'; layout.yaxis.title = 'Profit';
-                        break;
-                    }
-                    case 'box': case 'violin': {
-                        const { values } = getSeries(metric);
-                        traces.push({ y: values, type: type, name: metric });
-                        break;
-                    }
-                    case 'treemap': case 'sunburst': {
-                        const cat1 = AVAILABLE_METRICS.categorical[0];
-                        const cat2 = AVAILABLE_METRICS.categorical[1];
-                        if (!cat1 || !cat2) { return { error: 'This chart requires at least two categorical columns.' }; }
+                        // Auto-detect if we can stack Sales & Profit, otherwise stack the selected metric split by category
+                        var m1 = 'Sales', m2 = 'Profit';
+                        if (!HEADERS.includes(m1)) m1 = metric;
+                        if (!HEADERS.includes(m2)) m2 = metric; // Fallback
 
-                        const hierarchy = DATASET.reduce((acc, row) => {
-                            const parent = row[cat1]; const child = row[cat2]; const value = row.Sales || 0;
-                            if (!acc[parent]) acc[parent] = { children: {}, total: 0 };
-                            acc[parent].children[child] = (acc[parent].children[child] || 0) + value;
-                            acc[parent].total += value;
-                            return acc;
-                        }, {});
+                        var s1 = getSeriesData(m1);
+                        var s2 = getSeriesData(m2);
 
-                        const labels = ['Total']; const parents = [''];
-                        const values = [Object.values(hierarchy).reduce((sum, p) => sum + p.total, 0)];
+                        var isHorizontal = (type === 'stacked-bar');
 
-                        for (const parent in hierarchy) {
-                            labels.push(parent); parents.push('Total'); values.push(hierarchy[parent].total);
-                            for (const child in hierarchy[parent].children) {
-                                labels.push(child); parents.push(parent); values.push(hierarchy[parent].children[child]);
+                        traces.push({
+                            type: 'bar',
+                            x: isHorizontal ? s1.values : s1.labels,
+                            y: isHorizontal ? s1.labels : s1.values,
+                            name: m1,
+                            orientation: isHorizontal ? 'h' : 'v'
+                        });
+                        traces.push({
+                            type: 'bar',
+                            x: isHorizontal ? s2.values : s2.labels,
+                            y: isHorizontal ? s2.labels : s2.values,
+                            name: m2,
+                            orientation: isHorizontal ? 'h' : 'v'
+                        });
+                        layout.barmode = 'stack';
+                        break;
+
+                    // ============================================================
+                    // 2. LINE & AREA
+                    // ============================================================
+                    case 'line':
+                    case 'area':
+                        var { labels, values } = getSeriesData(metric);
+                        traces.push({
+                            type: 'scatter',
+                            mode: 'lines+markers',
+                            x: labels,
+                            y: values,
+                            fill: type === 'area' ? 'tozeroy' : 'none',
+                            name: metric
+                        });
+                        break;
+
+                    case 'stacked-area':
+                        var s1 = getSeriesData('Sales');
+                        var s2 = getSeriesData('Profit');
+                        traces.push({ type: 'scatter', x: s1.labels, y: s1.values, stackgroup: 'one', name: 'Sales' });
+                        traces.push({ type: 'scatter', x: s2.labels, y: s2.values, stackgroup: 'one', name: 'Profit' });
+                        break;
+
+                    // ============================================================
+                    // 3. PROPORTIONAL
+                    // ============================================================
+                    case 'pie':
+                    case 'donut':
+                        var { labels, values } = getSeriesData(metric);
+                        traces.push({
+                            type: 'pie',
+                            labels: labels,
+                            values: values,
+                            hole: type === 'donut' ? 0.4 : 0,
+                            textinfo: 'percent'
+                        });
+                        break;
+
+                    case 'treemap':
+                        var { labels, values } = getSeriesData(metric);
+                        traces.push({
+                            type: 'treemap',
+                            labels: labels,
+                            parents: labels.map(() => ''),
+                            values: values,
+                            textinfo: "label+value"
+                        });
+                        break;
+
+                    // ============================================================
+                    // 4. RELATIONAL
+                    // ============================================================
+                    case 'scatter':
+                    case 'bubble':
+                        // Try to use Sales vs Profit, else use Index vs Metric
+                        var xVals = HEADERS.includes('Sales') ? DATASET.map(r => r.Sales) : DATASET.map((_, i) => i);
+                        var yVals = HEADERS.includes('Profit') ? DATASET.map(r => r.Profit) : DATASET.map(r => r[metric]);
+
+                        traces.push({
+                            type: 'scatter',
+                            mode: 'markers',
+                            x: xVals,
+                            y: yVals,
+                            marker: {
+                                size: type === 'bubble' ? yVals.map(v => Math.max(Math.abs(v) / 20, 5)) : 8,
+                                color: yVals,
+                                colorscale: 'Portland',
+                                showscale: true
                             }
-                        }
-                        traces.push({ type: type, labels, parents, values, branchvalues: 'total' });
+                        });
                         break;
-                    }
-                    case 'heatmap': {
-                        const cat1 = AVAILABLE_METRICS.categorical[0];
-                        const cat2 = AVAILABLE_METRICS.categorical[1];
-                        if (!cat1 || !cat2) { return { error: 'Heatmap requires at least two categorical columns.' }; }
-                        const xLabels = [...new Set(DATASET.map(r => r[cat1]))];
-                        const yLabels = [...new Set(DATASET.map(r => r[cat2]))];
-                        const zValues = yLabels.map(y => xLabels.map(x => {
-                            const filtered = DATASET.filter(r => r[cat1] === x && r[cat2] === y);
-                            return filtered.reduce((sum, r) => sum + (r[metric] || 0), 0);
-                        }));
-                        traces.push({ x: xLabels, y: yLabels, z: zValues, type: 'heatmap', colorscale: 'Viridis' });
+
+                    // ============================================================
+                    // 5. DATA DISPLAY (Fixed Multi-Row Card)
+                    // ============================================================
+                    case 'table':
+                        // Full Data Table
+                        traces.push({
+                            type: 'table',
+                            header: { values: HEADERS, align: "left", fill: { color: "#202a3a" }, font: { size: 12, color: "white" } },
+                            cells: { values: HEADERS.map(h => DATASET.map(r => r[h])), align: "left", fill: { color: "#0f1115" }, font: { size: 11, color: "lightgrey" } }
+                        });
                         break;
-                    }
-                    case 'choropleth': { return { error: `Map charts require specific geographical data (e.g., country codes) which was not found.` }; }
-                    case 'decomposition-tree': { return { error: `Decomposition Tree is a placeholder for a complex custom visual.` }; }
-                    case 'waterfall': case 'funnel': case 'gauge': {
-                        return { error: `The "${type}" chart requires specific data structures. This is a placeholder visual.` };
-                    }
-                    case 'combo': {
-                        if (!HEADERS.includes('Sales') || !HEADERS.includes('Profit')) { return { error: 'Combo chart requires "Sales" and "Profit" columns.' }; }
-                        const sales = getSeries('Sales'); const profit = getSeries('Profit');
-                        traces.push({ type: 'bar', x: sales.labels, y: sales.values, name: 'Sales' });
-                        traces.push({ type: 'scatter', mode: 'lines', x: profit.labels, y: profit.values, name: 'Profit', yaxis: 'y2' });
-                        layout.yaxis2 = { title: 'Profit', overlaying: 'y', side: 'right', showgrid: false, tickfont: { color: '#ff7f0e' } };
+
+                    case 'multi-row-card':
+                        // SOLUTION: Create a "Top 5" Summary Table instead of an error
+                        var { labels, values } = getSeriesData(metric);
+                        // Combine, sort, and slice top 5
+                        var combined = labels.map((l, i) => ({ label: l, value: values[i] }));
+                        combined.sort((a, b) => b.value - a.value);
+                        var top5 = combined.slice(0, 5);
+
+                        traces.push({
+                            type: 'table',
+                            header: { values: ["Category", "Top Values"], align: "left", fill: { color: "#1E90FF" }, font: { color: "white" } },
+                            cells: { values: [top5.map(i => i.label), top5.map(i => i.value)], align: "left", fill: { color: "#1b1f2a" }, font: { color: "white" } }
+                        });
                         break;
-                    }
-                    default: return { error: `Chart type "${type}" is not implemented.` };
+
+                    case 'cards-single':
+                        var total = DATASET.reduce((sum, r) => sum + (r[metric] || 0), 0);
+                        traces.push({
+                            type: "indicator",
+                            mode: "number",
+                            value: total,
+                            title: { text: "Total " + metric },
+                            number: { prefix: "$" }
+                        });
+                        break;
+
+                    case 'matrix':
+                        // Heatmap fallback
+                        var x = DATASET.map(r => r[AVAILABLE_METRICS.categorical[0]]);
+                        var y = DATASET.map(r => r[AVAILABLE_METRICS.categorical[1]] || r[AVAILABLE_METRICS.categorical[0]]);
+                        var z = DATASET.map(r => r[metric]);
+                        traces.push({ x: x, y: y, z: z, type: 'heatmap', colorscale: 'Viridis' });
+                        break;
+
+                    // ============================================================
+                    // 6. SPECIALIZED (Fixed Placeholders - Now Renders Data)
+                    // ============================================================
+                    case 'combo':
+                        var s1 = getSeriesData('Sales');
+                        var s2 = getSeriesData('Profit');
+                        traces.push({ type: 'bar', x: s1.labels, y: s1.values, name: 'Sales' });
+                        traces.push({ type: 'scatter', x: s2.labels, y: s2.values, name: 'Profit', yaxis: 'y2' });
+                        layout.yaxis2 = { title: 'Profit', overlaying: 'y', side: 'right' };
+                        break;
+
+                    case 'waterfall':
+                        // Calculate changes between rows for a basic waterfall
+                        var { labels, values } = getSeriesData(metric);
+                        var limitedLabels = labels.slice(0, 10); // Limit to 10 for readability
+                        var limitedValues = values.slice(0, 10);
+                        traces.push({
+                            type: "waterfall",
+                            orientation: "v",
+                            measure: limitedValues.map(() => "relative"),
+                            x: limitedLabels,
+                            y: limitedValues,
+                            connector: { line: { color: "rgb(63, 63, 63)" } },
+                        });
+                        break;
+
+                    case 'funnel':
+                        // Sort values for funnel effect
+                        var { labels, values } = getSeriesData(metric);
+                        var combined = labels.map((l, i) => ({ label: l, value: values[i] }));
+                        combined.sort((a, b) => b.value - a.value); // Descending
+                        traces.push({
+                            type: 'funnel',
+                            y: combined.map(x => x.label).slice(0, 8),
+                            x: combined.map(x => x.value).slice(0, 8),
+                            textinfo: "value+percent initial"
+                        });
+                        break;
+
+                    case 'gauge':
+                        var total = DATASET.reduce((sum, r) => sum + (r[metric] || 0), 0);
+                        var maxVal = total * 1.5;
+                        traces.push({
+                            type: "indicator",
+                            mode: "gauge+number",
+                            value: total,
+                            title: { text: metric, font: { size: 24 } },
+                            gauge: {
+                                axis: { range: [null, maxVal] },
+                                bar: { color: "#1E90FF" },
+                                steps: [
+                                    { range: [0, maxVal * 0.5], color: "#1b1f2a" },
+                                    { range: [maxVal * 0.5, maxVal], color: "#252b3b" }
+                                ],
+                            }
+                        });
+                        break;
+                    case 'map-scatter':
+                    case 'map-filled':
+                        // Fallback to Bubble chart if no map data, but don't error
+                        var { labels, values } = getSeriesData(metric);
+                        traces.push({
+                            type: 'scatter', mode: 'markers', x: labels, y: values,
+                            marker: { size: 12, color: values, colorscale: 'Earth' },
+                            name: 'Geo Data N/A - Showing Distribution'
+                        });
+                        layout.title.text = "Map Data Missing - Showing Distribution";
+                        break;
+
+                    case 'decomposition-tree':
+                        // Fallback to Sunburst
+                        var { labels, values } = getSeriesData(metric);
+                        traces.push({ type: 'sunburst', labels: labels, parents: labels.map(() => ''), values: values });
+                        break;
+
+                    default:
+                        // Universal Fallback: Bar Chart
+                        var { labels, values } = getSeriesData(metric);
+                        traces.push({ type: 'bar', x: labels, y: values, name: metric });
                 }
+
                 return { traces, layout };
+
             } catch (err) {
-                console.error(`Failed to generate chart type "${type}":`, err);
-                return { error: `Could not draw chart. The data might be in an incompatible format.` };
+                console.error("Graph Error:", err);
+                return { error: 'Could not visualize this data combination.' };
             }
         }
-
-
         function drawChart(plotId, type, metric) {
             const { traces, layout, error } = generateTracesAndLayout(type, metric);
             if (error) {
@@ -1664,7 +1799,171 @@
                 reader.readAsText(file);
             });
 
-            // --- UPDATED Event Listeners ---
+
+
+
+
+
+
+            // --- FIXED FULL-SCREEN PDF DOWNLOADER ---
+            document.getElementById('btn-download-pdf').addEventListener('click', async function () {
+                const btn = this;
+                const originalText = btn.innerHTML;
+                btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Generating PDF...`;
+
+                try {
+                    if (typeof html2pdf === 'undefined') throw new Error("PDF Library not loaded.");
+
+                    // 1. Capture Config
+                    const settings = {};
+                    ['metric-1', 'agg-1', 'metric-2', 'agg-2', 'metric-3', 'agg-3', 'metric-4', 'agg-4',
+                        'u-type', 'u-metric', 'st-type', 'st-metric', 'pt-type', 'pt-metric'].forEach(id => {
+                            const el = document.getElementById(id); if (el) settings[id] = el.value;
+                        });
+                    const shareUrl = `${window.location.origin}${window.location.pathname}?config=${btoa(JSON.stringify(settings))}`;
+
+                    // 2. Snapshot Charts (High Quality)
+                    const getChartImage = async (id, height = 400) => {
+                        const el = document.getElementById(id);
+                        if (!el || el.innerHTML === "") return null;
+                        try {
+                            // Capture at 1200px to match PDF width exactly
+                            return await Plotly.toImage(el, { format: 'png', width: 1150, height: height });
+                        } catch (e) { return null; }
+                    };
+
+                    const [imgMain, imgSales, imgProfit, imgOverlay, imgScatter] = await Promise.all([
+                        getChartImage('main-plot', 550),
+                        getChartImage('sales-trend', 350),
+                        getChartImage('profit-trend', 350),
+                        getChartImage('overlay-plot', 350),
+                        getChartImage('scatter-plot', 350)
+                    ]);
+
+                    // 3. Setup PDF Container - EXACT SIZE MATCH
+                    const pdfContainer = document.createElement('div');
+                    // MATCHING THE jsPDF FORMAT BELOW (1200px width)
+                    pdfContainer.style.width = "1200px";
+                    pdfContainer.style.background = "#0f1115";
+                    pdfContainer.style.color = "white";
+                    pdfContainer.style.fontFamily = "sans-serif";
+                    // Remove padding that might push content out
+                    pdfContainer.style.padding = "40px";
+                    pdfContainer.style.boxSizing = "border-box";
+
+                    const createImgCard = (imgData, title) => {
+                        const card = document.createElement('div');
+                        card.style.background = "#1b1f2a";
+                        card.style.border = "1px solid #2d3a54";
+                        card.style.borderRadius = "12px";
+                        card.style.padding = "20px";
+                        card.style.flex = "1";
+                        card.style.pageBreakInside = "avoid";
+                        if (title) card.innerHTML = `<h3 style="color:#9aa4b2; margin:0 0 15px 0; font-size:18px;">${title}</h3>`;
+                        if (imgData) {
+                            const img = document.createElement('img');
+                            img.src = imgData; img.style.width = "100%"; img.style.display = "block";
+                            card.appendChild(img);
+                        }
+                        return card;
+                    };
+
+                    // --- PAGE 1 ---
+                    const page1 = document.createElement('div');
+                    page1.style.height = "900px"; // EXACT PDF HEIGHT
+                    page1.style.pageBreakAfter = "always";
+                    page1.style.display = "flex";
+                    page1.style.flexDirection = "column";
+
+                    page1.innerHTML = `
+            <div style="text-align: center; margin-bottom: 40px; border-bottom: 3px solid #1E90FF; padding-bottom: 20px;">
+                <div style="font-size: 42px; font-weight:900; letter-spacing: 2px;">MORPH-AI-ERA</div>
+                <div style="color: #1E90FF; font-size: 16px; margin-top:5px;">INTELLIGENT ANALYTICS REPORT</div>
+            </div>
+            <h2 style="color: #cfe5ff; margin-bottom: 30px;">Executive Summary</h2>
+        `;
+
+                    const cardsSection = document.querySelector('.metrics').cloneNode(true);
+                    cardsSection.style.display = 'grid';
+                    cardsSection.style.gridTemplateColumns = '1fr 1fr';
+                    cardsSection.style.gap = '30px';
+                    cardsSection.querySelectorAll('.card').forEach(c => {
+                        c.style.background = "#1b1f2a"; c.style.border = "1px solid #2d3a54"; c.style.padding = "40px 20px"; c.style.textAlign = "center";
+                        c.querySelector('.card-controls').style.display = 'none';
+                        c.querySelector('.metric-val').style.fontSize = "36px";
+                    });
+                    page1.appendChild(cardsSection);
+                    pdfContainer.appendChild(page1);
+
+                    // --- PAGE 2 ---
+                    const page2 = document.createElement('div');
+                    page2.style.height = "900px"; // EXACT PDF HEIGHT
+                    page2.style.pageBreakAfter = "always";
+                    page2.innerHTML = `<h2 style="color: #cfe5ff; margin-bottom: 20px; border-left: 5px solid #1E90FF; padding-left: 15px;">Deep Dive Analysis</h2>`;
+                    page2.appendChild(createImgCard(imgMain, "Primary Metric Analysis"));
+                    pdfContainer.appendChild(page2);
+
+                    // --- PAGE 3 ---
+                    const page3 = document.createElement('div');
+                    page3.style.height = "900px"; // EXACT PDF HEIGHT
+                    page3.style.pageBreakAfter = "always";
+                    page3.innerHTML = `<h2 style="color: #cfe5ff; margin-bottom: 20px; border-left: 5px solid #1E90FF; padding-left: 15px;">Trend Metrics</h2>`;
+                    const row1 = document.createElement('div'); row1.style.display = "flex"; row1.style.gap = "30px";
+                    row1.appendChild(createImgCard(imgSales, "Sales Trend"));
+                    row1.appendChild(createImgCard(imgProfit, "Profit Trend"));
+                    page3.appendChild(row1);
+                    pdfContainer.appendChild(page3);
+
+                    // --- PAGE 4 ---
+                    const page4 = document.createElement('div');
+                    page4.style.height = "900px"; // EXACT PDF HEIGHT
+                    // No break after last page
+                    page4.innerHTML = `<h2 style="color: #cfe5ff; margin-bottom: 20px; border-left: 5px solid #1E90FF; padding-left: 15px;">Correlations & Distribution</h2>`;
+                    const row2 = document.createElement('div'); row2.style.display = "flex"; row2.style.gap = "30px";
+                    row2.appendChild(createImgCard(imgOverlay, "Sales vs Profit (Overlay)"));
+                    row2.appendChild(createImgCard(imgScatter, "Cluster Analysis"));
+                    page4.appendChild(row2);
+
+                    const footer = document.createElement('div');
+                    footer.innerHTML = `
+            <div style="background: #161b22; padding: 20px; text-align: center; border-radius:12px; margin-top:60px; border:1px solid #333;">
+                <p style="margin:0 0 10px 0; color:#ccc; font-weight:bold;">Want to explore this data interactively?</p>
+                <a href="${shareUrl}" target="_blank" style="background-color:#1E90FF;color:white;padding:12px 25px;text-decoration:none;border-radius:6px;font-size:14px;font-weight:bold;">Open Live Dashboard</a>
+            </div>
+            <div style="text-align:center; color:#555; font-size:12px; margin-top:15px;">Generated by Morph-Ai-Era</div>
+        `;
+                    page4.appendChild(footer);
+                    pdfContainer.appendChild(page4);
+
+                    // 4. Render
+                    document.body.appendChild(pdfContainer);
+
+                    const opt = {
+                        margin: 0,
+                        filename: 'Morph-AI-Analytics.pdf',
+                        image: { type: 'jpeg', quality: 0.98 },
+                        // Ensure background color is explicitly black
+                        html2canvas: { scale: 2, useCORS: true, backgroundColor: "#0f1115" },
+                        // Exact pixel match: [1200, 900] matches the container width/height
+                        jsPDF: { unit: 'px', format: [1200, 900], orientation: 'landscape' }
+                    };
+
+                    await html2pdf().set(opt).from(pdfContainer).save();
+
+                    document.body.removeChild(pdfContainer);
+                    btn.innerHTML = originalText;
+
+                } catch (error) {
+                    console.error("PDF Error:", error);
+                    alert("Error: " + error.message);
+                    btn.innerHTML = originalText;
+                }
+            });
+
+
+
+
+
 
             // This button calls drawMain, which has the credit check
             $('#btnUpdate').addEventListener('click', drawMain);
