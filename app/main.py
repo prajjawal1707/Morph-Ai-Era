@@ -215,3 +215,26 @@ from fastapi.responses import FileResponse
 @app.get("/sitemap.xml")
 async def get_sitemap():
     return FileResponse("sitemap.xml")
+
+# Import the new logic
+from app.api.analytics import calculate_data_health, generate_forecast, segment_customers
+# (Or just 'import analytics' if in same folder)
+
+# --- 1. Health Check Endpoint ---
+@app.post("/api/analyze/health")
+async def analyze_health(request: Request):
+    data = await request.json()
+    # Convert JSON back to DataFrame
+    df = pd.DataFrame(data['rows']) 
+    result = calculate_data_health(df)
+    return result
+
+# --- 2. Forecast Endpoint ---
+@app.post("/api/analyze/forecast")
+async def get_forecast(request: Request):
+    data = await request.json()
+    df = pd.DataFrame(data['rows'])
+    date_col = data.get('date_col')
+    value_col = data.get('value_col')
+    
+    return generate_forecast(df, date_col, value_col)

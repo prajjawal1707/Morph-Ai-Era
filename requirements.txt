@@ -17,3 +17,5 @@ numpy>=1.26.4
 openpyxl>=3.1.2
 matplotlib>=3.9.0
 python-jose
+scikit-learn
+statsmodels
