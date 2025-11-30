@@ -821,7 +821,19 @@
                         <i class="fa-solid fa-file-pdf"></i> Download Smart PDF
                     </button>
                 </div>
-
+                <div style="flex-basis: 100%; height: 0;"></div>
+                <div class="group"
+                    style="margin-top: 5px; padding-top: 10px; border-top: 1px solid #2d3a54; width: 100%;">
+                    <span class="label" style="color: #00e676; font-weight: bold;">AI Tools:</span>
+                    <button id="btnHealth" class="btn"
+                        style="border: 1px solid #00e676; color: #00e676; background: transparent;">
+                        <i class="fa-solid fa-heart-pulse"></i> Check Health
+                    </button>
+                    <button id="btnForecast" class="btn"
+                        style="border: 1px solid #a55eea; color: #a55eea; background: transparent;">
+                        <i class="fa-solid fa-wand-magic-sparkles"></i> Forecast Growth
+                    </button>
+                </div>
             </section>
 
             <section class="card panel" style="padding:14px;">
@@ -1173,8 +1185,6 @@
         function updateViewDropdown() {
             const allViews = JSON.parse(localStorage.getItem('dashboardViews')) || {};
             const select = $('#load-view');
-
-            // Clear existing options, but keep the first "Load View" placeholder
             select.innerHTML = '<option value="">Load View</option>';
 
             for (const viewName in allViews) {
@@ -1365,7 +1375,7 @@
         function generateTracesAndLayout(type, metric) {
             // 1. Handling Table/Cards without requiring a metric selection first
             if (!metric && !type.includes('table') && !type.includes('card')) {
-                return { error: 'Please select a metric.' };
+                return { error: ' ' };
             }
 
             let traces = [];
@@ -2102,6 +2112,104 @@
             parseCSV(defaultCSV);
             refreshAll(); // <-- This runs on page load (no credits charged yet)
         })();
+
+
+        // --- 2. AI FORECAST LOGIC (FIXED) ---
+        document.getElementById('btnForecast').addEventListener('click', async () => {
+            // 1. Credit Check
+            if (!useCredit()) return;
+
+            // 2. Validate Inputs
+            const metric = document.getElementById('u-metric').value;
+            const dateCol = HEADERS.find(h => h.toLowerCase().includes('date') || h.toLowerCase().includes('time') || h.toLowerCase().includes('year'));
+
+            if (!metric || !dateCol) {
+                alert("To use AI Forecasting, please select a Metric (e.g., Sales) and ensure your CSV has a 'Date' column.");
+                return;
+            }
+
+            // 3. UI Loading State
+            const btn = document.getElementById('btnForecast');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Predicting...';
+
+            try {
+                // 4. Call Backend
+                const response = await fetch('/api/analyze/forecast', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        rows: DATASET,
+                        date_col: dateCol,
+                        value_col: metric
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    
+                    let rawHistory = DATASET.map(row => ({
+                        date: row[dateCol],
+                        val: parseFloat(row[metric]) || 0
+                    }));
+
+                    // 2. Sort by Date (Crucial for Line Charts)
+                    rawHistory.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+                    // 3. Create the Historical Trace (Solid Blue Line)
+                    const traceOriginal = {
+                        x: rawHistory.map(r => r.date),
+                        y: rawHistory.map(r => r.val),
+                        name: 'Historical Data',
+                        type: 'scatter',
+                        mode: 'lines', // Force lines so it connects
+                        line: { color: '#1E90FF', width: 2 }
+                    };
+
+                    // 4. Create the Forecast Trace (Dotted Green Line)
+                    const traceForecast = {
+                        x: result.forecast.map(f => f.date),
+                        y: result.forecast.map(f => f.value),
+                        name: 'AI Prediction (Next 3 Months)',
+                        type: 'scatter',
+                        mode: 'lines+markers',
+                        line: { dash: 'dot', color: '#00e676', width: 3 }
+                    };
+
+                    // 5. Draw the Chart (Force X-Axis to be Date)
+                    const layout = plotlyLayout(`AI Forecast: ${metric}`, {
+                        xaxis: { title: 'Timeline', type: 'date', gridcolor: '#1d2738' }, // Force Date Axis
+                        yaxis: { title: metric, gridcolor: '#1d2738' },
+                        shapes: [{ // Vertical line separating history/future
+                            type: 'line',
+                            x0: rawHistory[rawHistory.length - 1].date,
+                            y0: 0,
+                            x1: rawHistory[rawHistory.length - 1].date,
+                            y1: Math.max(...result.forecast.map(f => f.value), ...rawHistory.map(r => r.val)),
+                            line: { color: 'grey', width: 1, dash: 'dash' }
+                        }]
+                    });
+
+                    // Overwrite the main plot completely
+                    Plotly.newPlot('main-plot', [traceOriginal, traceForecast], layout);
+
+                    // Update Dropdown to reflect we are in "Line" mode now
+                    document.getElementById('u-type').value = 'line';
+
+                    alert("AI Forecast generated! (Switched to Time-Series View)");
+
+                } else {
+                    throw new Error(result.error || "Unknown backend error");
+                }
+
+            } catch (e) {
+                console.error(e);
+                alert("Forecast Failed: " + e.message);
+            } finally {
+                btn.innerHTML = originalText;
+            }
+        });
     </script>
 
     <div id="promo-modal" class="modal-overlay">
@@ -2109,7 +2217,7 @@
             <h1 class="modal-title">Welcome to Morph-AI-Era!</h1>
             <p class="modal-text">
                 Join the Morph-AI era today.<br>
-                Log in now to claim your <strong>10 Free Credits</strong> 
+                Log in now to claim your <strong>10 Free Credits</strong>
             </p>
             <div class="modal-buttons">
                 <button class="btn" onclick="closePromo()">Maybe Later</button>
