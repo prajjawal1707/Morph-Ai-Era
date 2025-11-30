@@ -9,7 +9,9 @@ import pandas as pd
 from fastapi import Depends
 from fastapi.responses import RedirectResponse
 from app.api.auth import get_current_user # This imports your security guard
-# Local application imports
+import time
+# from supabase import create_client
+from supabase import create_client, Client
 from app.api import upload, chart, auth  # <-- This line now works because auth.py exists
 from app.services.file_handler import get_dataframe
 import razorpay
@@ -156,52 +158,91 @@ async def get_shipping_page(request: Request):
 @app.get("/contact", response_class=HTMLResponse)
 async def get_contact_page(request: Request):
     return templates.TemplateResponse("contact.html", {"request": request})
+# =================================================================
+#  PAYMENT & CREDITS LOGIC (Dynamic Pricing)
+# =================================================================
 
-# --- ADD THIS NEW ENDPOINT ---
-@app.post("/create-order")
-async def create_payment_order():
+class OrderRequest(BaseModel):
+    amount: int  # Accepts 49, 199, or 999
+
+# In main.py - REPLACE your old create-order function with this:
+
+class OrderRequest(BaseModel):
+    amount: int  # <--- This allows the frontend to send 49, 199, or 999
+
+@app.post("/api/create_order")
+async def create_order(request: OrderRequest, current_user: dict = Depends(get_current_user)):
     try:
-        # Create the order
-        # Amount is in paise, so ₹199.00 = 19900 paise
-        order_data = {
-            "amount": 19900,  
+        # 1. Security Check
+        allowed_prices = [49, 199, 999] 
+        if request.amount not in allowed_prices:
+            raise HTTPException(status_code=400, detail="Invalid price package")
+
+        # 2. Create Razorpay Order
+        # FIX: We use current_user['id'][:6] to take only the first 6 letters
+        data = {
+            "amount": request.amount * 100,
             "currency": "INR",
-            "receipt": "receipt_#123",
+            "receipt": f"rcpt_{current_user['id'][:6]}_{int(time.time())}", 
             "notes": {
-                "description": "50 Credits for Morph-AI-Era"
+                "user_id": current_user['id'],
+                "plan_price": request.amount 
             }
         }
-        order = client.order.create(data=order_data)
-        
-        # Return the order ID and amount to the frontend
-        return {"id": order["id"], "amount": order["amount"], "currency": order["currency"]}
-        
+        order = client.order.create(data=data)
+        return order
+
     except Exception as e:
         print(f"Error creating order: {e}")
-        raise HTTPException(status_code=500, detail="Could not create payment order")
-# 2. ADD THIS NEW VERIFICATION ENDPOINT
-@app.post("/verify-payment")
-async def verify_payment(verification_data: PaymentVerification):
+        raise HTTPException(status_code=500, detail=str(e))
     
-    # Create a dictionary of the payment data
-    params_dict = {
-        'razorpay_order_id': verification_data.razorpay_order_id,
-        'razorpay_payment_id': verification_data.razorpay_payment_id,
-        'razorpay_signature': verification_data.razorpay_signature
-    }
-
+@app.post("/verify_payment") # Note: Changed from verify-payment to verify_payment
+async def verify_payment(data: PaymentVerification):
     try:
+        # 1. Verify Signature
+        params_dict = {
+            'razorpay_order_id': data.razorpay_order_id,
+            'razorpay_payment_id': data.razorpay_payment_id,
+            'razorpay_signature': data.razorpay_signature
+        }
         client.utility.verify_payment_signature(params_dict)
-        print(f"Payment Verified: {verification_data.razorpay_payment_id}")
-        return {"status": "success", "message": "Payment verified successfully"}
 
-    except SignatureVerificationError as e:
-        print(f"Signature Verification Failed: {e}")
+        # 2. Fetch Order Details to confirm amount
+        order_info = client.order.fetch(data.razorpay_order_id)
+        amount_paid = order_info['amount'] / 100  # Convert paise back to Rupees
+        user_id = order_info['notes']['user_id']
+
+        # 3. Determine Credits based on Price
+        credits_to_add = 0
+        if amount_paid == 49:
+            credits_to_add = 20
+        elif amount_paid == 199:
+            credits_to_add = 200
+        elif amount_paid == 999:
+            credits_to_add = 1500
+        
+        # 4. Update Database (Supabase)
+        # Fetch current credits first
+        response = supabase.table("users").select("credits").eq("id", user_id).execute()
+        
+        # Handle case where user might not have a credit entry yet
+        if response.data:
+            current_credits = response.data[0]['credits'] or 0
+            new_balance = current_credits + credits_to_add
+            
+            # Push new balance to DB
+            supabase.table("users").update({"credits": new_balance}).eq("id", user_id).execute()
+        else:
+            # Fallback (should typically not happen for logged in users)
+            print(f"User {user_id} not found in DB during credit update.")
+
+        return {"status": "success", "new_balance": new_balance, "added": credits_to_add}
+
+    except SignatureVerificationError:
         raise HTTPException(status_code=400, detail="Invalid payment signature")
     except Exception as e:
-        print(f"Error verifying payment: {e}")
-        raise HTTPException(status_code=500, detail="Payment verification failed")
-    
+        print(f"Payment Verification Failed: {e}")
+        raise HTTPException(status_code=500, detail="Verification Process Failed")    
 from fastapi.responses import FileResponse
 
 @app.get("/robots.txt")
