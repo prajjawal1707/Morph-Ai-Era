@@ -2026,8 +2026,6 @@
             });
 
 
-            // --- PROMO MODAL LOGIC ---
-
             function showPromo() {
                 // Check if user has already seen this (Stored in Browser Memory)
                 const hasSeenPromo = localStorage.getItem('seen_welcome_promo');
@@ -2107,6 +2105,106 @@
 
 
         // --- 2. AI FORECAST LOGIC (FIXED) ---
+        // document.getElementById('btnForecast').addEventListener('click', async () => {
+        //     // 1. Credit Check
+        //     if (!useCredit()) return;
+
+        //     // 2. Validate Inputs
+        //     const metric = document.getElementById('u-metric').value;
+        //     const dateCol = HEADERS.find(h => h.toLowerCase().includes('date') || h.toLowerCase().includes('time') || h.toLowerCase().includes('year'));
+
+        //     if (!metric || !dateCol) {
+        //         alert("To use AI Forecasting, please select a Metric (e.g., Sales) and ensure your CSV has a 'Date' column.");
+        //         return;
+        //     }
+
+        //     // 3. UI Loading State
+        //     const btn = document.getElementById('btnForecast');
+        //     const originalText = btn.innerHTML;
+        //     btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Predicting...';
+
+        //     try {
+        //         // 4. Call Backend
+        //         const response = await fetch('/api/analyze/forecast', {
+        //             method: 'POST',
+        //             headers: { 'Content-Type': 'application/json' },
+        //             body: JSON.stringify({
+        //                 rows: DATASET,
+        //                 date_col: dateCol,
+        //                 value_col: metric
+        //             })
+        //         });
+
+        //         const result = await response.json();
+
+        //         if (result.success) {
+
+        //             let rawHistory = DATASET.map(row => ({
+        //                 date: row[dateCol],
+        //                 val: parseFloat(row[metric]) || 0
+        //             }));
+
+        //             // 2. Sort by Date (Crucial for Line Charts)
+        //             rawHistory.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+        //             // 3. Create the Historical Trace (Solid Blue Line)
+        //             const traceOriginal = {
+        //                 x: rawHistory.map(r => r.date),
+        //                 y: rawHistory.map(r => r.val),
+        //                 name: 'Historical Data',
+        //                 type: 'scatter',
+        //                 mode: 'lines', // Force lines so it connects
+        //                 line: { color: '#1E90FF', width: 2 }
+        //             };
+
+        //             // 4. Create the Forecast Trace (Dotted Green Line)
+        //             const traceForecast = {
+        //                 x: result.forecast.map(f => f.date),
+        //                 y: result.forecast.map(f => f.value),
+        //                 name: 'AI Prediction (Next 3 Months)',
+        //                 type: 'scatter',
+        //                 mode: 'lines+markers',
+        //                 line: { dash: 'dot', color: '#00e676', width: 3 }
+        //             };
+
+        //             // 5. Draw the Chart (Force X-Axis to be Date)
+        //             const layout = plotlyLayout(`AI Forecast: ${metric}`, {
+        //                 xaxis: { title: 'Timeline', type: 'date', gridcolor: '#1d2738' }, // Force Date Axis
+        //                 yaxis: { title: metric, gridcolor: '#1d2738' },
+        //                 shapes: [{ // Vertical line separating history/future
+        //                     type: 'line',
+        //                     x0: rawHistory[rawHistory.length - 1].date,
+        //                     y0: 0,
+        //                     x1: rawHistory[rawHistory.length - 1].date,
+        //                     y1: Math.max(...result.forecast.map(f => f.value), ...rawHistory.map(r => r.val)),
+        //                     line: { color: 'grey', width: 1, dash: 'dash' }
+        //                 }]
+        //             });
+
+        //             // Overwrite the main plot completely
+        //             Plotly.newPlot('main-plot', [traceOriginal, traceForecast], layout);
+
+        //             // Update Dropdown to reflect we are in "Line" mode now
+        //             document.getElementById('u-type').value = 'line';
+
+        //             alert("AI Forecast generated! (Switched to Time-Series View)");
+
+        //         } else {
+        //             throw new Error(result.error || "Unknown backend error");
+        //         }
+
+        //     } catch (e) {
+        //         console.error(e);
+        //         alert("Forecast Failed: " + e.message);
+        //     } finally {
+        //         btn.innerHTML = originalText;
+        //     }
+        // });
+
+
+
+
+        // --- 2. AI FORECAST LOGIC (Gap Fix) ---
         document.getElementById('btnForecast').addEventListener('click', async () => {
             // 1. Credit Check
             if (!useCredit()) return;
@@ -2116,17 +2214,16 @@
             const dateCol = HEADERS.find(h => h.toLowerCase().includes('date') || h.toLowerCase().includes('time') || h.toLowerCase().includes('year'));
 
             if (!metric || !dateCol) {
-                alert("To use AI Forecasting, please select a Metric (e.g., Sales) and ensure your CSV has a 'Date' column.");
+                alert("To use AI Forecasting, please select a Metric and ensure your CSV has a 'Date' column.");
                 return;
             }
 
-            // 3. UI Loading State
             const btn = document.getElementById('btnForecast');
             const originalText = btn.innerHTML;
             btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Predicting...';
 
             try {
-                // 4. Call Backend
+                // 3. Call Backend
                 const response = await fetch('/api/analyze/forecast', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -2140,56 +2237,73 @@
                 const result = await response.json();
 
                 if (result.success) {
+                    // --- STEP A: Clean & Sort History ---
+                    // Create a clean array of objects {date, val}
+                    let rawHistory = DATASET.map(row => {
+                        let rawVal = row[metric];
+                        // Remove commas/currency signs if string ($1,000 -> 1000)
+                        if (typeof rawVal === 'string') rawVal = rawVal.replace(/[$,]/g, '');
+                        return {
+                            date: row[dateCol],
+                            val: parseFloat(rawVal) || 0
+                        };
+                    });
 
-                    let rawHistory = DATASET.map(row => ({
-                        date: row[dateCol],
-                        val: parseFloat(row[metric]) || 0
-                    }));
-
-                    // 2. Sort by Date (Crucial for Line Charts)
+                    // Sort chronologically (Oldest -> Newest) so the line draws correctly
                     rawHistory.sort((a, b) => new Date(a.date) - new Date(b.date));
 
-                    // 3. Create the Historical Trace (Solid Blue Line)
+                    // Extract arrays for Plotly
+                    const histDates = rawHistory.map(r => r.date);
+                    const histValues = rawHistory.map(r => r.val);
+
+                    // --- STEP B: Connect the Lines (The "Bridge") ---
+                    // Get the very last point of history
+                    const lastDate = histDates[histDates.length - 1];
+                    const lastVal = histValues[histValues.length - 1];
+
+                    // Create the Forecast arrays by STARTING with the last history point
+                    // This ensures the green line starts exactly where the blue line ends
+                    const forecastDates = [lastDate, ...result.forecast.map(f => f.date)];
+                    const forecastValues = [lastVal, ...result.forecast.map(f => f.value)];
+
+                    // --- STEP C: Create Traces ---
                     const traceOriginal = {
-                        x: rawHistory.map(r => r.date),
-                        y: rawHistory.map(r => r.val),
+                        x: histDates,
+                        y: histValues,
                         name: 'Historical Data',
                         type: 'scatter',
-                        mode: 'lines', // Force lines so it connects
-                        line: { color: '#1E90FF', width: 2 }
+                        mode: 'lines', // Solid line
+                        line: { color: '#1E90FF', width: 3 }
                     };
 
-                    // 4. Create the Forecast Trace (Dotted Green Line)
                     const traceForecast = {
-                        x: result.forecast.map(f => f.date),
-                        y: result.forecast.map(f => f.value),
+                        x: forecastDates,
+                        y: forecastValues,
                         name: 'AI Prediction (Next 3 Months)',
                         type: 'scatter',
                         mode: 'lines+markers',
-                        line: { dash: 'dot', color: '#00e676', width: 3 }
+                        line: { dash: 'dot', color: '#00e676', width: 3 } // Dotted green line
                     };
 
-                    // 5. Draw the Chart (Force X-Axis to be Date)
+                    // --- STEP D: Draw ---
                     const layout = plotlyLayout(`AI Forecast: ${metric}`, {
-                        xaxis: { title: 'Timeline', type: 'date', gridcolor: '#1d2738' }, // Force Date Axis
+                        xaxis: { title: 'Timeline', type: 'date', gridcolor: '#1d2738' },
                         yaxis: { title: metric, gridcolor: '#1d2738' },
-                        shapes: [{ // Vertical line separating history/future
+                        // Optional: Add a vertical line marker at the split
+                        shapes: [{
                             type: 'line',
-                            x0: rawHistory[rawHistory.length - 1].date,
-                            y0: 0,
-                            x1: rawHistory[rawHistory.length - 1].date,
-                            y1: Math.max(...result.forecast.map(f => f.value), ...rawHistory.map(r => r.val)),
+                            x0: lastDate, y0: 0,
+                            x1: lastDate, y1: Math.max(...forecastValues, ...histValues),
                             line: { color: 'grey', width: 1, dash: 'dash' }
                         }]
                     });
 
-                    // Overwrite the main plot completely
                     Plotly.newPlot('main-plot', [traceOriginal, traceForecast], layout);
 
-                    // Update Dropdown to reflect we are in "Line" mode now
+                    // Force Dropdown to reflect "Line Chart" state
                     document.getElementById('u-type').value = 'line';
 
-                    alert("AI Forecast generated! (Switched to Time-Series View)");
+                    alert("AI Forecast generated! (Timeline View)");
 
                 } else {
                     throw new Error(result.error || "Unknown backend error");
@@ -2202,6 +2316,65 @@
                 btn.innerHTML = originalText;
             }
         });
+
+
+        // --- 3. AI HEALTH CHECK LOGIC ---
+        document.getElementById('btnHealth').addEventListener('click', async () => {
+            // 1. Credit Check (Uses your existing credit system)
+            if (!useCredit()) return;
+
+            const btn = document.getElementById('btnHealth');
+            const originalText = btn.innerHTML;
+
+            // Show loading state
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Scanning...';
+
+            try {
+                // 2. Call the Python Backend
+                // We send the current 'DATASET' that is loaded in the browser
+                const response = await fetch('/api/analyze/health', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ rows: DATASET })
+                });
+
+                const result = await response.json();
+
+                // 3. Determine Color based on Score
+                let gradeIcon = "🟢";
+                if (result.score < 80) gradeIcon = "🟠";
+                if (result.score < 50) gradeIcon = "🔴";
+
+                // 4. Format the Alert Message
+                const message = `
+${gradeIcon} Data Health Score: ${result.score}/100
+------------------------------------------------
+Status: ${result.status}
+
+Issues Found:
+${result.issues.length > 0 ? result.issues.map(i => `• ${i}`).join('\n') : "• No critical issues found! Data is clean."}
+
+Recommendation:
+${result.score > 80 ? "Data is good for Forecasting." : "We recommend cleaning empty cells before analysis."}
+        `;
+
+                // 5. Show the Report
+                alert(message);
+
+                // Log this action if your logHistory function exists
+                if (typeof logHistory === 'function') {
+                    logHistory("AI Health Check", `Score: ${result.score}`);
+                }
+
+            } catch (e) {
+                console.error("Health Check Error:", e);
+                alert("AI Engine Error: Could not scan data. Make sure the backend is running.");
+            } finally {
+                // Reset button text
+                btn.innerHTML = originalText;
+            }
+        });
+
     </script>
 
     <div id="promo-modal" class="modal-overlay">

@@ -198,7 +198,7 @@
             flex-direction: column;
             /* Stacks the two rows vertically */
             gap: 10px;
-        
+
             width: 100%;
         }
 
@@ -211,9 +211,11 @@
             align-items: center;
             width: 100%;
         }
-.header-top{
+
+        .header-top {
             margin-top: 20px;
-}
+        }
+
         /* --- TYPOGRAPHY --- */
         .title {
             margin: 0;
@@ -1162,9 +1164,8 @@
             $('#sankey-target').innerHTML = cats;
         }
 
-        // REPLACE your existing calculateHealthScore function with this:
 
-        // --- FEATURE 6: Data Profiling & Quality Score ---
+
         function calculateHealthScore() {
             let totalCells = DATASET.length * HEADERS.length;
             let badCells = 0;
@@ -1214,13 +1215,23 @@
             }
         }
 
+
+
         function loadData() {
             try {
                 const storedData = localStorage.getItem('dashboardData');
                 if (storedData) {
                     const parsed = JSON.parse(storedData);
-                    DATASET = parsed.data;
                     HEADERS = parsed.headers;
+                    DATASET = parsed.data;
+                    ORIGINAL_DATASET = [...parsed.data]; // <--- CRITICAL FIX: Populate backup data
+
+                    // Identify Categorical/Numeric columns for filters
+                    if (DATASET.length > 0) {
+                        AVAILABLE_METRICS.numeric = HEADERS.filter(h => typeof DATASET[0][h] === 'number');
+                        AVAILABLE_METRICS.categorical = HEADERS.filter(h => typeof DATASET[0][h] === 'string');
+                    }
+
                     return true;
                 }
             } catch (e) {
@@ -1340,7 +1351,25 @@
                 doc.save('report.pdf');
             };
 
-        })(); // <--- Correctly closes the Init block here
+        })();
+
+
+        // --- INITIALIZATION (Runs on Page Load) ---
+        (function () {
+            // 1. Try to load data from Dashboard memory
+            if (loadData()) {
+                // 2. If data exists, Calculate Health immediately
+                calculateHealthScore();
+
+                // 3. Optional: If you have filter logic, apply it here
+                // applyGlobalFilters(); 
+            } else {
+                // 4. No data found (User came directly to Analytics without uploading)
+                const scoreEl = document.getElementById('health-score');
+                if (scoreEl) scoreEl.innerText = "--%";
+                console.log("No dataset found. Go to Dashboard to upload file.");
+            }
+        })();
     </script>
 </body>
 

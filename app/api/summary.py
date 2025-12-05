@@ -1,26 +1,3 @@
-# from fastapi import APIRouter
-# from app.services.filehandler import get_dataframe
-
-# router = APIRouter(prefix="/api", tags=["summary"])
-
-# @router.get("/summary")
-# async def get_summary():
-#     df = get_dataframe()
-#     if df is None:
-#         return {"error": "No file uploaded"}
-
-#     summary = {
-#         "rows": len(df),
-#         "columns": list(df.columns),
-#         "dtypes": df.dtypes.astype(str).to_dict(),
-#     }
-#     return summary
-
-
-
-
-
-
 
 
 

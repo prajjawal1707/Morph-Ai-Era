@@ -4,7 +4,26 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MORPH-AI-ERA • Dashboard</title>
+
+    <title>Morph-AI-Era | Free Interactive Data Analytics Dashboard</title>
+    <meta name="description"
+        content="Morph-AI-Era is a free AI-powered tool to visualize CSV data instantly. Create interactive dashboards, track KPIs, and analyze sales trends without coding.">
+    <meta name="keywords"
+        content="Morph-AI-Era, Morph Era, Data Visualization, CSV to Graph, Free Dashboard, Python Analytics, Morph AI">
+    <meta name="author" content="Prajjawal">
+
+    <meta name="robots" content="index, follow">
+
+    <meta property="og:title" content="Morph-AI-Era - Visualize Data in Seconds">
+    <meta property="og:description"
+        content="Upload raw CSV files and get instant interactive charts and running totals. Free & Fast.">
+    <meta property="og:image" content="https://morph-ai-era.online/dashboard">
+    <meta property="og:url" content="https://morph-ai-era.online/dashboard">
+    <meta property="og:type" content="website">
+    <!-- for rank 1 code for bing and google -->
+    <meta name="msvalidate.01" content="B21B1E2975CAD87C47E22E64B36E9327" />
+    <meta name="google-site-verification" content="mzhPxtiTxOSOCeq957lXBCeF6MKTtpwC-qbByjFn774" />
+    <!-- <title>MORPH-AI-ERA • Dashboard</title> -->
     <!-- Google tag (gtag.js) -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-K25LC6ESHG"></script>
     <script>
@@ -17,7 +36,8 @@
     <!-- Icons & Plotly -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
     <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
-
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+    <script src="https://unpkg.com/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js"></script>
     <style>
         /* This defines the light theme variables. */
         .light-mode {
@@ -100,7 +120,7 @@
             align-items: center;
             transition: width 0.25s ease;
             overflow: hidden;
-            z-index: 10;
+            z-index: 1000;
         }
 
         .sidebar.expanded {
@@ -115,6 +135,7 @@
             min-width: 44px;
             /* Changed from width */
             height: 44px;
+            /* width: 100px; */
             border-radius: 12px;
             background: #0c1a33;
             border: 1px solid #1b2a44;
@@ -173,6 +194,7 @@
 
         .navbtn span {
             display: none;
+            white-space: nowrap;
         }
 
         .sidebar.expanded .navbtn span {
@@ -211,11 +233,148 @@
             text-decoration: underline;
         }
 
+        #mobile-toggle {
+            position: fixed;
+            top: 14px;
+            left: 10px;
+            z-index: 1001;
+            display: none;
+            /* Hidden by default */
+        }
+
 
         .main {
             flex: 1;
             padding: 24px;
             overflow-x: hidden;
+        }
+
+        /* --- NEW: Credit Display Box Styles --- */
+        .credit-display-box {
+            position: absolute;
+            top: 24px;
+            right: 24px;
+            z-index: 100;
+            text-align: center;
+
+            /* --- Default state (> 0 credits) --- */
+            /* Box is transparent and has no padding */
+            background: transparent;
+            border: none;
+            padding: 0;
+            box-shadow: none;
+            border-radius: 12px;
+
+            /* --- Added transition for smoothness --- */
+            transition: all 0.3s ease;
+        }
+
+        /* --- "Show Box" state (<= 0 credits) --- */
+        /* This class is added by JavaScript when credits are <= 0 */
+        .credit-display-box.show-box {
+            background: var(--panel);
+            border: 1px solid #212735;
+            padding: 12px 16px;
+            box-shadow: var(--card-shadow);
+        }
+
+        /* --- "Credits Remaining" text --- */
+        .credit-display-box div:first-child {
+            display: none;
+            /* Hidden by default */
+            font-size: 13px;
+            /* Made this smaller than the number */
+            color: var(--muted);
+            margin-bottom: 4px;
+        }
+
+        /* Show the text ONLY when the full box is visible */
+        .credit-display-box.show-box div:first-child {
+            display: block;
+        }
+
+        /* --- The credit number --- */
+        #credit-count {
+            font-size: 18px;
+            font-weight: 800;
+            color: var(--brand);
+            line-height: 1.1;
+
+            /* --- This is the default "number only" style --- */
+            background: rgba(0, 0, 0, 0.2);
+            padding: 8px 12px;
+            border-radius: 10px;
+            transition: all 0.3s ease;
+        }
+
+        /* --- Style for the number when the box appears --- */
+        .credit-display-box.show-box #credit-count {
+            background: transparent;
+            /* Remove the number's background */
+            padding: 0;
+            font-size: 24px;
+            /* Make it bigger inside the box */
+        }
+
+        /* This class still controls the color (blue vs. red) */
+        #credit-count.no-credits {
+            color: var(--danger);
+        }
+
+        /* --- "Buy Credits" link --- */
+        .buy-credits-link {
+            display: none;
+            /* Hidden by default */
+            font-size: 13px;
+            color: var(--brand);
+            text-decoration: none;
+            font-weight: 600;
+            /* margin-top: 8px; */
+        }
+
+        /* Show the link ONLY when the full box is visible */
+        .credit-display-box.show-box .buy-credits-link {
+            display: block;
+        }
+
+        .buy-credits-link:hover {
+            text-decoration: underline;
+        }
+
+        /* --- Media queries remain the same --- */
+        @media (max-width: 640px) {
+            .main {
+                padding-top: 100px;
+                /* Add padding to avoid overlap */
+            }
+
+            .credit-display-box {
+                /* top: 80px; */
+                /* Position it below the mobile toggle */
+                right: 18px;
+
+            }
+
+            /* We need to update the "show-box" for mobile */
+            .credit-display-box.show-box {
+                padding: 8px 12px;
+                /* Ensures padding is correct on mobile */
+            }
+
+            /* And update the "number only" style for mobile */
+            .credit-display-box:not(.show-box) {
+                /* When box is hidden, only show number */
+                top: 80px;
+                left: auto;
+                /* Reset left */
+                right: 18px;
+                /* Stick to the right */
+            }
+
+            .title {
+                margin-top: 18px;
+                /* Add margin to the title */
+            }
         }
 
         .title {
@@ -238,6 +397,18 @@
             /* Mobile: 1 column */
             gap: 18px;
             margin-bottom: 18px;
+        }
+
+        .card-controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .card-controls .select {
+            flex: 1;
+            height: 30px;
+            font-size: 12px;
         }
 
         .card {
@@ -399,28 +570,151 @@
                 grid-template-columns: repeat(4, 1fr);
             }
         }
+
+        @media print {
+
+            .card,
+            .panel,
+            .plot,
+            .grid,
+            .metrics {
+                break-inside: avoid;
+                page-break-inside: avoid;
+            }
+        }
+
+
+        /* Mobile specific sidebar */
+        @media (max-width: 768px) {
+            #mobile-toggle {
+                display: flex;
+            }
+
+            .wrap {
+                display: block;
+            }
+
+            .sidebar {
+                position: fixed;
+                width: 220px;
+                transform: translateX(-100%);
+                transition: transform 0.3s ease-in-out;
+                align-items: flex-start;
+            }
+
+            .sidebar.is-open {
+                transform: translateX(0);
+            }
+
+            .sidebar.is-open .brand span,
+            .sidebar.is-open .navbtn span {
+                display: inline;
+            }
+
+            .sidebar.is-open .auth-status {
+                display: block;
+            }
+        }
+
+        .card-controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .card-controls .select {
+            flex: 1;
+            height: 30px;
+            font-size: 12px;
+        }
+
+        /* --- PROMO MODAL STYLES --- */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            /* Dim background */
+            backdrop-filter: blur(4px);
+            /* Blur effect */
+            z-index: 2000;
+            /* Sit on top of everything */
+            display: none;
+            /* Hidden by default */
+            align-items: center;
+            justify-content: center;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .modal-card {
+            background: linear-gradient(145deg, #1b1f2a, #111521);
+            border: 1px solid #1E90FF;
+            box-shadow: 0 0 30px rgba(30, 144, 255, 0.2);
+            width: 90%;
+            max-width: 400px;
+            padding: 30px;
+            border-radius: 20px;
+            text-align: center;
+            transform: scale(0.9);
+            animation: popUp 0.3s forwards;
+        }
+
+        .modal-icon {
+            font-size: 40px;
+            margin-bottom: 15px;
+        }
+
+        .modal-title {
+            color: #fff;
+            font-size: 24px;
+            margin: 0 0 10px 0;
+            font-weight: 800;
+        }
+
+        .modal-text {
+            color: #9aa4b2;
+            font-size: 14px;
+            line-height: 1.5;
+            margin-bottom: 25px;
+        }
+
+        .modal-text strong {
+            color: #00e676;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+        }
+
+        /* Animations */
+        @keyframes popUp {
+            to {
+                transform: scale(1);
+            }
+        }
     </style>
 </head>
 
 <body>
+    <div id="mobile-toggle" class="brand">MAE</div>
     <div class="wrap">
 
         <!-- Sidebar -->
         <aside class="sidebar" id="sidebar">
             <div class="brand" id="toggleSidebar">MAE <span>MORPH-AI-ERA</span></div>
             <nav class="nav">
-                <button class="navbtn" data-page="dashboard"><i
-                        class="fa-solid fa-gauge-high"></i><span>Dashboard</span></button>
-
-                <a href="analytics.html" class="navbtn"><i class="fa-solid fa-chart-line"></i><span>Analytics</span></a>
-                <a href="history.html" class="navbtn"><i class="fa-regular fa-clock"></i><span>History</span></a>
+                <a href="/dashboard" class="navbtn"><i class="fa-solid fa-gauge-high"></i><span>Dashboard</span></a>
+                <a href="/analytics" class="navbtn"><i class="fa-solid fa-chart-line"></i><span>Analytics</span></a>
+                <a href="/history" class="navbtn"><i class="fa-regular fa-clock"></i><span>History</span></a>
             </nav>
             <div class="spacer"></div>
             <nav class="nav">
-                <a href="settings.html" class="navbtn" style="text-decoration: none;"><i
-                        class="fa-solid fa-gear"></i><span>Settings</span></a>
-                <a href="profile.html" class="navbtn" style="text-decoration: none;"><i
-                        class="fa-regular fa-user"></i><span>Profile</span>
+                <a href="/settings" class="navbtn"><i class="fa-solid fa-gear"></i><span>Settings</span></a>
+                <a href="/profile" class="navbtn"><i class="fa-regular fa-user"></i><span>Profile</span>
                 </a>
             </nav>
 
@@ -434,41 +728,111 @@
 
         <!-- Main Content -->
         <main class="main" id="main-content">
+            <!-- adding credit logic -->
+            <div class="credit-display-box">
+                <div>Credits</div>
+                <div id="credit-count">5</div>
+                <a href="https://rzp.io/rzp/O7H1VONQ" class="buy-credits-link" id="buy-credits-link">
+                    Buy Credits
+                </a>
+            </div>
+
             <h1 class="title">Welcome to MORPH-AI-ERA</h1>
             <p class="subtitle">Dashboard Overview</p>
 
             <section class="metrics">
+
                 <div class="card">
-                    <div class="metric-label">Total Sales</div>
-                    <div id="m-total" class="metric-val">$0</div>
+                    <div class="card-controls">
+                        <select class="select card-metric-select" id="metric-1"></select>
+                        <select class="select card-agg-select" id="agg-1">
+                            <option value="sum">Total</option>
+                            <option value="mean">Average</option>
+                            <option value="max">Max</option>
+                            <option value="min">Min</option>
+                            <option value="count">Count</option>
+                        </select>
+                    </div>
+                    <div class="metric-label" id="label-1"></div>
+                    <div class="metric-val" id="val-1"></div>
                 </div>
                 <div class="card">
-                    <div class="metric-label">Average Profit</div>
-                    <div id="m-avg" class="metric-val">$0</div>
+                    <div class="card-controls">
+                        <select class="select card-metric-select" id="metric-2"></select>
+                        <select class="select card-agg-select" id="agg-2">
+                            <option value="mean">Average</option>
+                            <option value="sum">Total</option>
+                            <option value="max">Max</option>
+                            <option value="min">Min</option>
+                            <option value="count">Count</option>
+                        </select>
+                    </div>
+                    <div class="metric-label" id="label-2"></div>
+                    <div class="metric-val" id="val-2"></div>
                 </div>
                 <div class="card">
-                    <div class="metric-label">Max Profit</div>
-                    <div id="m-max" class="metric-val">$0</div>
+                    <div class="card-controls">
+                        <select class="select card-metric-select" id="metric-3"></select>
+                        <select class="select card-agg-select" id="agg-3">
+                            <option value="max">Max</option>
+                            <option value="min">Min</option>
+                            <option value="sum">Total</option>
+                            <option value="mean">Average</option>
+                            <option value="count">Count</option>
+                        </select>
+                    </div>
+                    <div class="metric-label" id="label-3"></div>
+                    <div class="metric-val" id="val-3"></div>
                 </div>
                 <div class="card">
-                    <div class="metric-label">Min Profit</div>
-                    <div id="m-min" class="metric-val">$0</div>
+                    <div class="card-controls">
+                        <select class="select card-metric-select" id="metric-4"></select>
+                        <select class="select card-agg-select" id="agg-4">
+                            <option value="min">Min</option>
+                            <option value="max">Max</option>
+                            <option value="sum">Total</option>
+                            <option value="mean">Average</option>
+                            <option value="count">Count</option>
+                        </select>
+                    </div>
+                    <div class="metric-label" id="label-4"></div>
+                    <div class="metric-val" id="val-4"></div>
                 </div>
             </section>
-
             <section class="bar">
-                <div class="group">
-                    <span class="label">Upload CSV</span>
-                    <label for="fileInput" class="file-label"><i class="fa-solid fa-file-arrow-up"></i> Choose
-                        File</label>
-                    <input id="fileInput" type="file" accept=".csv" />
-                </div>
-                <div style="flex:1"></div> <!-- Spacer -->
+                <div class="group"><span class="label">Upload</span><label for="fileInput" class="file-label"><i
+                            class="fa-solid fa-file-arrow-up"></i> File</label><input id="fileInput" type="file"
+                        accept=".csv" /></div>
+                <div class="group"><span class="label">Views</span><select id="load-view" class="select">
+                        <option value="">Load View</option>
+                    </select><button id="save-view" class="btn">Save View</button></div>
+
+                <!-- <div style="flex:1"></div>
+                <div class="group" id="filter-status" style="display:none;"><span class="label">Filters
+                        Active!</span><button id="clear-filters" class="btn">Clear Filters</button></div> -->
+                <div class="group"><button id="calc-running-total" class="btn">Running Total</button></div>
                 <div class="group">
                     <button id="btnUpdate" class="btn primary"><i class="fa-solid fa-rotate"></i>&nbsp;Update
                         Chart</button>
                     <button id="btnCalc" class="btn success"><i class="fa-solid fa-calculator"></i>&nbsp;Calculate
                         Metrics</button>
+                    <button id="btn-download-pdf" class="btn primary"
+                        style="background: #1E90FF; border:none; display:flex; align-items:center; gap:8px;">
+                        <i class="fa-solid fa-file-pdf"></i> Download Smart PDF
+                    </button>
+                </div>
+                <div style="flex-basis: 100%; height: 0;"></div>
+                <div class="group"
+                    style="margin-top: 5px; padding-top: 10px; border-top: 1px solid #2d3a54; width: 100%;">
+                    <span class="label" style="color: #00e676; font-weight: bold;">AI Tools:</span>
+                    <button id="btnHealth" class="btn"
+                        style="border: 1px solid #00e676; color: #00e676; background: transparent;">
+                        <i class="fa-solid fa-heart-pulse"></i> Check Health
+                    </button>
+                    <button id="btnForecast" class="btn"
+                        style="border: 1px solid #a55eea; color: #a55eea; background: transparent;">
+                        <i class="fa-solid fa-wand-magic-sparkles"></i> Forecast Growth
+                    </button>
                 </div>
             </section>
 
@@ -478,46 +842,47 @@
                     <div class="controls">
                         <select id="u-type" class="select">
                             <optgroup label="Bar & Column">
-                                <option value="bar-h">Bar Chart (Horizontal)</option>
-                                <option value="bar">Column Chart (Vertical)</option>
-                                <option value="clustered-column">Clustered Column</option>
-                                <option value="stacked-bar">Stacked Bar</option>
-                                <option value="stacked-column">Stacked Column</option>
-                            </optgroup>
-                            <optgroup label="Line & Area">
-                                <option value="line">Line Chart</option>
-                                <option value="area">Area Chart</option>
-                                <option value="stacked-area">Stacked Area Chart</option>
-                            </optgroup>
-                            <optgroup label="Proportional">
-                                <option value="pie">Pie Chart</option>
-                                <option value="donut">Donut Chart</option>
-                                <option value="treemap">Tree Map</option>
-                                <option value="sunburst">Sunburst Chart</option>
-                            </optgroup>
-                            <optgroup label="Relational">
-                                <option value="scatter">Scatter Chart</option>
-                                <option value="bubble">Bubble Chart</option>
-                                <option value="box">Box Plot</option>
-                                <option value="violin">Violin Plot</option>
-                            </optgroup>
-                            <optgroup label="Specialized">
-                                <option value="waterfall">Waterfall Chart</option>
-                                <option value="funnel">Funnel Chart</option>
-                                <option value="gauge">Gauge Chart</option>
-                            </optgroup>
-                            <optgroup label="Data Display">
-                                <option value="heatmap">Matrix (Heatmap)</option>
-                            </optgroup>
-                            <optgroup label="Geographical">
-                                <option value="choropleth">Filled Map (Choropleth)</option>
-                            </optgroup>
-                            <optgroup label="Hierarchical">
-                                <option value="decomposition-tree">Decomposition Tree</option>
-                            </optgroup>
-                            <optgroup label="Combo">
-                                <option value="combo">Combo (Line + Column)</option>
-                            </optgroup>
+                                                <option value="bar-horizontal">Bar Chart (Horizontal)</option>
+                                                <option value="column-vertical">Column Chart (Vertical)</option>
+                                                <option value="clustered-column">Clustered Column Chart</option>
+                                                <option value="stacked-bar">Stacked Bar Chart</option>
+                                                <option value="stacked-column">Stacked Column Chart</option>
+                                            </optgroup>
+                                        <optgroup label="Line & Area">
+                                                <option value="line">Line Chart</option>
+                                                <option value="area">Area Chart</option>
+                                                <option value="stacked-area">Stacked Area Chart</option>
+                                            </optgroup>
+                                        <optgroup label="Proportional">
+                                                <option value="pie">Pie Chart</option>
+                                                <option value="donut">Donut Chart</option>
+                                                <option value="treemap">Tree Map</option>
+                                            </optgroup>
+                                        <optgroup label="Relational">
+                                                <option value="scatter">Scatter Chart</option>
+                                                <option value="bubble">Bubble Chart</option>
+                                            </optgroup>
+                                        <optgroup label="Specialized">
+                                                <option value="waterfall">Waterfall Chart</option>
+                                                <option value="funnel">Funnel Chart</option>
+                                                <option value="gauge">Gauge Chart</option>
+                                                <option value="combo">Combo (Line + Column)</option>
+                                            </optgroup>
+                                         <optgroup label="Data Display">
+                                                <option value="table">Table</option>
+                                                <option value="matrix">Matrix (Heatmap)</option>
+                                                <option value="cards-single">Cards (Single Metric)</option>
+                                                <option value="multi-row-card">Multi Row Card</option>
+                                            </optgroup>
+                                        <optgroup label="Geographical">
+                                                <option value="map-scatter">Map (Scatter Plot)</option>
+                                                <option value="map-filled">Filled Map (Choropleth)</option>
+                                            </optgroup>
+                                        <optgroup label="Hierarchical">
+                                                <option value="decomposition-tree">Decomposition Tree (Placeholder)
+                                </option>
+                                            </optgroup>
+                                   
                         </select>
                         <select id="u-metric" class="select"></select>
                     </div>
@@ -574,8 +939,7 @@
                     <div id="profit-trend" class="plot"></div>
                 </div>
                 <div class="card panel">
-                    <div class="head">
-                        <span>Sales vs Profit (Overlay)</span>
+                    <div class="head"><span>Sales vs Profit (Overlay)</span>
                         <div class="controls">
                             <select id="ovl-type-a" class="select">
                                 <option value="bar">Bar (Sales)</option>
@@ -585,69 +949,300 @@
                                 <option value="line">Line (Profit)</option>
                                 <option value="bar">Bar (Profit)</option>
                             </select>
+                            <i class="fa-solid fa-expand expand-btn" data-plot="overlay-plot"></i>
                         </div>
                     </div>
                     <div id="overlay-plot" class="plot"></div>
                 </div>
                 <div class="card panel">
-                    <div class="head">
-                        <span>Sales vs Profit (Scatter)</span>
+                    <div class="head"><span>Sales vs Profit (Scatter)</span>
                         <div class="controls">
                             <button id="sc-refresh" class="btn"><i class="fa-solid fa-arrows-rotate"></i></button>
+                            <i class="fa-solid fa-expand expand-btn" data-plot="scatter-plot"></i>
                         </div>
                     </div>
                     <div id="scatter-plot" class="plot"></div>
                 </div>
             </section>
         </main>
+
+
+
     </div>
+    <footer
+        style="text-align: center; padding: 15px 20px; ; background-color: #11151f; font-size: 12px; color: #595959;">
+        <p>&copy; 2025 Morph-Ai-Era. All Rights Reserved.</p>
+        <div class="footer-links" style="margin-top: 5px;">
+            <a href="/terms" style="color: #3b3b3c; margin: 0 10px;">Terms & Conditions</a> |
+            <a href="/privacy" style="color: #414152; margin: 0 10px;">Privacy Policy</a> |
+            <a href="/refunds" style="color: #4d4d90; margin: 0 10px;">Refund Policy</a> |
+            <a href="/shipping" style="color: #3b3bba; margin: 0 10px;">Shipping Policy</a> |
+            <a href="/contact" style="color: #0404d2; margin: 0 10px;">Contact Us</a>
+        </div>
+    </footer>
+
+
 
     <script>
-        // --- Sidebar Logic ---
-        const sidebar = document.getElementById("sidebar");
-        const toggleSidebar = document.getElementById("toggleSidebar");
-        const mainContent = document.getElementById("main-content");
-
-        toggleSidebar.addEventListener("click", () => {
-            sidebar.classList.toggle("expanded");
-        });
-
-        document.querySelectorAll(".navbtn[data-page]").forEach(btn => {
-            btn.addEventListener("click", (e) => {
-                e.preventDefault();
-                const page = btn.getAttribute("data-page");
-                if (page) {
-                    mainContent.innerHTML = `<div style="text-align:center; padding-top:100px; font-size: 1.5rem; color: var(--muted);">⚡ ${page.toUpperCase()} page is not available in this demo.</div>`;
+        async function loadPage(url) {
+            try {
+                // Fetch the new HTML content from your server
+                const response = await fetch(url);
+                if (!response.ok) {
+                    throw new Error("Page not found");
                 }
-            });
-        });
+                const newContent = await response.text();
 
-        // --- Auth Logic (Simulated) ---
-        function checkLoginStatus() {
-            // This is a simulated check. In a real application, this would fetch from a server.
-            const authLinksDiv = document.getElementById('authLinks');
-            const userStatusP = document.getElementById('userStatus');
+                // Find your main content area and replace its HTML
+                const mainContent = document.getElementById('main-content');
+                mainContent.innerHTML = newContent;
 
-            // Default to guest state to prevent errors
-            const isLoggedIn = false;
-            const username = "DemoUser";
+                // If the loaded content has its own scripts, you might need to evaluate them
+                // This is an advanced topic, but keep it in mind.
 
-            if (isLoggedIn) {
-                userStatusP.textContent = `Logged in as: ${username}`;
-                authLinksDiv.innerHTML = `<a href="/logout">Log Out</a>`;
-            } else {
-                userStatusP.textContent = 'Using as: Guest';
-                authLinksDiv.innerHTML = `<a href="/login.html">Login</a> <a href="/signup.html">Sign Up</a>`;
+            } catch (error) {
+                console.error('Failed to load page:', error);
+                const mainContent = document.getElementById('main-content');
+                mainContent.innerHTML = '<h1>Error: Could not load page.</h1>';
             }
         }
+    </script>
+    <script>
+        // --- Sidebar, Auth & General Setup ---
+        const $ = q => document.querySelector(q);
+        const $$ = q => document.querySelectorAll(q);
 
-        // --- Graphing & Dashboard Logic ---
-        const $ = (q) => document.querySelector(q);
-        const $$ = (q) => document.querySelectorAll(q);
+        function setupSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const desktopToggle = document.getElementById('toggleSidebar');
+            const mobileToggle = document.getElementById('mobile-toggle');
+
+            desktopToggle.addEventListener('click', () => {
+                if (window.innerWidth > 768) {
+                    sidebar.classList.toggle('expanded');
+                } else {
+                    sidebar.classList.remove('is-open');
+                }
+            });
+
+            mobileToggle.addEventListener('click', () => {
+                sidebar.classList.toggle('is-open');
+            });
+
+            document.addEventListener('click', (e) => {
+                if (window.innerWidth <= 768 && sidebar.classList.contains('is-open')) {
+                    if (!sidebar.contains(e.target) && e.target !== mobileToggle) {
+                        sidebar.classList.remove('is-open');
+                    }
+                }
+            });
+
+            sidebar.querySelectorAll('.navbtn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    if (window.innerWidth <= 768) {
+                        sidebar.classList.remove('is-open');
+                    }
+                });
+            });
+        }
+        // THIS IS YOUR NEW, CORRECT checkLoginStatus FUNCTION
+
+        async function checkLoginStatus() {
+            const userStatusP = document.getElementById('userStatus');
+            const authLinksDiv = document.getElementById('authLinks');
+
+            try {
+                // This line calls your Python backend
+                const response = await fetch('/users/me');
+                const user = await response.json();
+
+                if (user.loggedIn) {
+                    userStatusP.textContent = `Logged in as: ${user.username}`;
+                    // Corrected logout link
+                    authLinksDiv.innerHTML = `<a href="/logout">Log Out</a>`;
+                } else {
+                    userStatusP.textContent = 'Using as: Guest';
+                    authLinksDiv.innerHTML = `<a href="/login">Login</a> <a href="/signup">Sign Up</a>`;
+                }
+            } catch (error) {
+                console.error('Error checking login status:', error);
+                userStatusP.textContent = 'Error loading status';
+                authLinksDiv.innerHTML = `<a href="/login">Login</a> <a href="/signup">Sign Up</a>`;
+            }
+        }
+        checkLoginStatus();
+
+
+        async function openPaymentPopup(price) { // <--- NOW ACCEPTS PRICE
+            // 1. Auth Check
+            if (!CURRENT_USER) {
+                alert("Please log in to buy credits.");
+                return;
+            }
+
+            try {
+                // --- STEP 1: Create Order (Dynamic Price) ---
+                // Note: We use '/api/create_order' to match the Python backend
+                const orderResponse = await fetch('/api/create_order', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        amount: price // <--- SENDS 49, 199, or 999
+                    })
+                });
+
+                if (!orderResponse.ok) {
+                    const err = await orderResponse.json();
+                    throw new Error(err.detail || 'Failed to create order');
+                }
+
+                const order = await orderResponse.json();
+
+                // --- STEP 2: Razorpay Options ---
+                const options = {
+                    "key": "rzp_live_RUz3YCUSovAxZr", // Replace if not fetching from backend
+                    "amount": order.amount,
+                    "currency": "INR",
+                    "name": "Morph-AI-Era",
+                    "description": `Credit Pack (${price})`,
+                    "order_id": order.id, // Use ID from backend response
+
+                    "handler": async function (response) {
+                        try {
+                            // --- STEP 3: Verify Payment ---
+                            const verifyResponse = await fetch('/api/verify_payment', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    razorpay_order_id: response.razorpay_order_id,
+                                    razorpay_payment_id: response.razorpay_payment_id,
+                                    razorpay_signature: response.razorpay_signature
+                                })
+                            });
+
+                            const verifyData = await verifyResponse.json();
+
+                            if (verifyData.status === 'success') {
+                                alert(`Success! ${verifyData.added} credits added.`);
+                                // Close the modal
+                                document.getElementById('pricing-modal').style.display = 'none';
+                                // Update UI
+                                CURRENT_CREDITS = verifyData.new_balance;
+                                updateCreditDisplay();
+                            } else {
+                                alert('Verification failed.');
+                            }
+                        } catch (error) {
+                            console.error('Verification Error:', error);
+                            alert('Payment received but verification failed.');
+                        }
+                    },
+                    "theme": { "color": "#1E90FF" }
+                };
+
+                const rzp = new Razorpay(options);
+                rzp.open();
+
+            } catch (error) {
+                console.error('Payment Error:', error);
+                alert('Error: ' + error.message);
+            }
+        }
+        // --- Data & History Management ---
+        let CURRENT_CREDITS = 0; // Default to 0, will be fetched from backend
+        let CURRENT_USER = null; // Default to null
         let DATASET = [];
         let HEADERS = [];
         let AVAILABLE_METRICS = { numeric: [], categorical: [] };
 
+
+
+        function logHistory(action, details) {
+            try {
+                const history = JSON.parse(localStorage.getItem('dashboardHistory')) || [];
+                const user = "guest-user"; // Replace with real user logic
+                history.unshift({ timestamp: new Date().toISOString(), user, action, details, csv: localStorage.getItem('lastCSV') || '' });
+                localStorage.setItem('dashboardHistory', JSON.stringify(history.slice(0, 50))); // Keep last 50 entries
+            } catch (e) { console.error("Could not log history:", e); }
+        }
+        // --- NEW: View Management ---
+        const VIEW_CONTROL_IDS = [
+            'metric-1', 'agg-1', 'metric-2', 'agg-2', 'metric-3', 'agg-3', 'metric-4', 'agg-4',
+            'u-type', 'u-metric', 'st-type', 'st-metric', 'pt-type', 'pt-metric',
+            'ovl-type-a', 'ovl-type-b'
+        ];
+
+        /**
+         * Populates the "Load View" dropdown with saved views from localStorage.
+         */
+        function updateViewDropdown() {
+            const allViews = JSON.parse(localStorage.getItem('dashboardViews')) || {};
+            const select = $('#load-view');
+            select.innerHTML = '<option value="">Load View</option>';
+
+            for (const viewName in allViews) {
+                const option = document.createElement('option');
+                option.value = viewName;
+                option.textContent = viewName;
+                select.appendChild(option);
+            }
+        }
+
+        /**
+         * Saves the current state of all select dropdowns to localStorage.
+         */
+        function saveView() {
+            const viewName = prompt("Enter a name for this view:");
+            if (!viewName || viewName.trim() === "") {
+                return; // User cancelled or entered no name
+            }
+
+            const viewState = {};
+            for (const id of VIEW_CONTROL_IDS) {
+                if ($(`#${id}`)) {
+                    viewState[id] = $(`#${id}`).value;
+                }
+            }
+
+            let allViews = JSON.parse(localStorage.getItem('dashboardViews')) || {};
+            allViews[viewName.trim()] = viewState;
+            localStorage.setItem('dashboardViews', JSON.stringify(allViews));
+
+            updateViewDropdown(); // Refresh the list with the new view
+            alert('View "' + viewName.trim() + '" saved!');
+            logHistory("Save View", `Saved view: ${viewName.trim()}`);
+        }
+
+        /**
+         * Loads a saved view from localStorage and applies it to the dashboard.
+         */
+        function loadView() {
+            const viewName = $('#load-view').value;
+            if (!viewName) return; // Ignore if they re-select "Load View"
+
+            const allViews = JSON.parse(localStorage.getItem('dashboardViews')) || {};
+            const viewState = allViews[viewName];
+
+            if (!viewState) {
+                alert('Error: Could not find view "' + viewName + '"');
+                return;
+            }
+
+            // Apply the saved state to all controls
+            for (const id in viewState) {
+                if ($(`#${id}`)) {
+                    $(`#${id}`).value = viewState[id];
+                }
+            }
+
+            // IMPORTANT: Refresh the entire dashboard to show the loaded state
+            refreshAll();
+
+            $('#load-view').value = ''; // Reset the dropdown to the placeholder
+            logHistory("Load View", `Loaded view: ${viewName}`);
+        }
+
+        // --- Data Loading & Parsing ---
         function parseCSV(text) {
             const lines = text.trim().split(/\r\n|\n/);
             HEADERS = lines[0].split(',').map(h => h.trim());
@@ -660,34 +1255,198 @@
                 });
                 return obj;
             });
+            // Save data for analytics page
+            localStorage.setItem('dashboardData', JSON.stringify({ headers: HEADERS, data: DATASET }));
+            localStorage.setItem('lastCSV', text); // Save raw CSV for history
         }
 
-        function loadSummary() {
-            if (DATASET.length === 0) return;
-            const sales = DATASET.map(row => row.Sales || 0);
-            const profits = DATASET.map(row => row.Profit || 0);
-            const totalSales = sales.reduce((a, b) => a + b, 0);
-            const avgProfit = profits.length > 0 ? profits.reduce((a, b) => a + b, 0) / profits.length : 0;
-            const maxProfit = profits.length > 0 ? Math.max(...profits) : 0;
-            const minProfit = profits.length > 0 ? Math.min(...profits) : 0;
-            $('#m-total').textContent = '$' + totalSales.toLocaleString();
-            $('#m-avg').textContent = '$' + avgProfit.toLocaleString(undefined, { maximumFractionDigits: 2 });
-            $('#m-max').textContent = '$' + maxProfit.toLocaleString();
-            $('#m-min').textContent = '$' + minProfit.toLocaleString();
-            AVAILABLE_METRICS.numeric = HEADERS.filter(h => h && typeof DATASET[0][h] === 'number');
-            AVAILABLE_METRICS.categorical = HEADERS.filter(h => h && typeof DATASET[0][h] === 'string');
 
-            const numericOptions = AVAILABLE_METRICS.numeric.map(c => `<option value="${c}">${c}</option>`).join('');
-            const categoricalOptions = AVAILABLE_METRICS.categorical.map(c => `<option value="${c}">${c}</option>`).join('');
-            const allMetricOptions = `<optgroup label="Categorical">${categoricalOptions}</optgroup><optgroup label="Numeric">${numericOptions}</optgroup>`;
 
-            $('#u-metric').innerHTML = allMetricOptions;
-            $('#st-metric').innerHTML = allMetricOptions;
-            $('#pt-metric').innerHTML = allMetricOptions;
 
-            if (HEADERS.includes('Sales')) $('#st-metric').value = 'Sales';
-            if (HEADERS.includes('Profit')) $('#pt-metric').value = 'Profit';
+
+
+
+
+        // --- NEW: Hybrid Credit System (Guest + User) ---
+        // Add these variables right after 'let CURRENT_CREDITS = 0;'
+        let GUEST_CREDITS_MAX = 5;
+        let guestCreditsUsed = parseInt(localStorage.getItem('guest_credits_used')) || 0;
+
+        function getGuestCreditsLeft() {
+            return Math.max(0, GUEST_CREDITS_MAX - guestCreditsUsed);
         }
+
+        // --- REPLACES THE OLD updateCreditDisplay FUNCTION ---
+        function updateCreditDisplay() {
+            const creditBox = $('.credit-display-box');
+            const creditEl = $('#credit-count');
+            const creditLabel = creditBox.querySelector('div:first-child'); // The "Credits" text
+            const buyLink = $('#buy-credits-link');
+
+            if (!creditBox || !creditEl) return;
+
+            if (CURRENT_USER) {
+                // --- LOGGED IN USER ---
+                creditLabel.textContent = "Credits";
+                creditEl.textContent = CURRENT_CREDITS;
+
+                // Reset Buy Link for Logged In User
+                buyLink.style.display = 'block';
+                buyLink.textContent = "Buy Credits";
+                buyLink.onclick = function (e) {
+                    e.preventDefault();
+                    openPaymentPopup();
+                };
+
+                // Show/Hide red style
+                if (CURRENT_CREDITS <= 0) {
+                    creditBox.classList.add('show-box');
+                    creditEl.classList.add('no-credits');
+                } else {
+                    creditBox.classList.remove('show-box');
+                    creditEl.classList.remove('no-credits');
+                }
+
+            } else {
+                // --- GUEST USER ---
+                const left = getGuestCreditsLeft();
+                creditLabel.textContent = "Free Trials";
+                creditEl.textContent = left;
+
+                // Always show box so they know they have limits
+                creditBox.classList.add('show-box');
+
+                if (left <= 0) {
+                    creditEl.classList.add('no-credits');
+                    // Change "Buy" link to "Login"
+                    buyLink.style.display = 'block';
+                    buyLink.textContent = "Login for More";
+                    buyLink.href = "/login";
+                    buyLink.onclick = null; // Remove payment popup trigger
+                } else {
+                    creditEl.classList.remove('no-credits');
+                    // Hide Buy Link for guests until they run out to reduce clutter
+                    buyLink.style.display = 'none';
+                }
+            }
+        }
+
+        // --- REPLACES THE OLD useCredit FUNCTION ---
+        // --- UPDATED CREDIT LOGIC ---
+
+        async function useCredit() {
+            // 1. LOGGED IN USER Logic
+            if (CURRENT_USER) {
+                if (CURRENT_CREDITS <= 0) {
+                    // User is logged in but out of credits -> Show Pricing Modal to buy more
+                    document.getElementById('pricing-modal').style.display = 'flex';
+                    return false;
+                }
+
+                // Deduct credit
+                CURRENT_CREDITS--;
+                updateCreditDisplay();
+
+                // Sync with server in background
+                fetch('/api/use-credit', { method: 'POST' }).catch(console.error);
+                return true;
+            }
+
+            // 2. GUEST USER Logic
+            const left = getGuestCreditsLeft();
+
+            if (left > 0) {
+                // Guest still has credits
+                guestCreditsUsed++;
+                localStorage.setItem('guest_credits_used', guestCreditsUsed);
+                updateCreditDisplay();
+
+                if (left === 5) {
+                    alert("✨ Starting your 5 Free Guest Trials!");
+                }
+                return true;
+            }
+
+            // 3. GUEST OUT OF CREDITS -> Open the Promo Modal (The HTML you provided)
+            document.getElementById('promo-modal').style.display = 'flex';
+            return false; // Stop the action
+        }
+
+        // --- HELPER FUNCTIONS FOR MODALS ---
+
+        function closePromo() {
+            document.getElementById('promo-modal').style.display = 'none';
+        }
+
+        function goToLogin() {
+            // Redirect to your login page
+            window.location.href = "/login";
+        }
+
+        // Function to handle the "Buy Now" buttons in the Pricing Modal
+        function openPaymentPopup(amount) {
+            // Logic to trigger Razorpay or Stripe
+            alert(`Initiating payment for ₹${amount}...`);
+            // You can replace this alert with your actual payment function call
+        }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        function updateCards() {
+            for (let i = 1; i <= 4; i++) {
+                const metric = $(`#metric-${i}`).value;
+                const agg = $(`#agg-${i}`).value;
+                if (!metric) continue;
+
+                const values = DATASET.map(row => row[metric]).filter(v => typeof v === 'number');
+                if (values.length === 0) continue;
+
+                let result = 0;
+                switch (agg) {
+                    case 'sum': result = values.reduce((a, b) => a + b, 0); break;
+                    case 'mean': result = values.reduce((a, b) => a + b, 0) / values.length; break;
+                    case 'max': result = Math.max(...values); break;
+                    case 'min': result = Math.min(...values); break;
+                    case 'count': result = values.length; break;
+                }
+
+                let formattedResult = result.toLocaleString(undefined, { maximumFractionDigits: 2 });
+                if (metric.toLowerCase().includes('sales') || metric.toLowerCase().includes('profit')) {
+                    formattedResult = '$' + formattedResult;
+                }
+
+                $(`#label-${i}`).textContent = `${agg.charAt(0).toUpperCase() + agg.slice(1)} ${metric}`;
+                $(`#val-${i}`).textContent = formattedResult;
+            }
+            logHistory("Update Cards", "Manually refreshed KPI cards");
+        }
+
+
+
+        // --- Analytics & Drawing Functions ---
+        const plotlyLayout = (title, extra_settings = {}) => ({
+            title: { text: title, font: { size: 16, color: '#dbe7ff' } },
+            paper_bgcolor: 'transparent',
+            plot_bgcolor: 'transparent',
+            margin: { l: 50, r: 25, t: 40, b: 40 },
+            xaxis: { gridcolor: '#1d2738', zeroline: false, tickfont: { color: '#b9c7dd' } },
+            yaxis: { gridcolor: '#1d2738', zeroline: false, tickfont: { color: '#b9c7dd' } },
+            showlegend: true,
+            legend: { orientation: 'h', y: -0.25, font: { color: '#cbd6ea' } },
+            ...extra_settings
+        });
+        const showPlotMessage = (plotId, message) => $(`#${plotId}`).innerHTML = `<div style="display:flex; align-items:center; justify-content:center; height:100%; color:var(--muted); padding: 20px; text-align: center;">${message}</div>`;
 
         function getSeries(metric) {
             if (AVAILABLE_METRICS.categorical.includes(metric)) {
@@ -702,149 +1461,276 @@
                 return { labels: Object.keys(aggregation), values: Object.values(aggregation) };
             } else {
                 const labelCol = AVAILABLE_METRICS.categorical[0] || HEADERS[0];
-                return {
-                    labels: DATASET.map(row => row[labelCol]),
-                    values: DATASET.map(row => row[metric])
-                };
+                return { labels: DATASET.map(row => row[labelCol]), values: DATASET.map(row => row[metric]) };
             }
         }
 
-        $('#fileInput').addEventListener('change', (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
-            const reader = new FileReader();
-            reader.onload = (event) => {
-                parseCSV(event.target.result);
-                refreshAll();
-            };
-            reader.onerror = () => alert('Error reading file.');
-            reader.readAsText(file);
-        });
-
-        const plotlyLayout = (title, extra_settings = {}) => ({
-            title: { text: title, font: { size: 16, color: '#dbe7ff' } },
-            paper_bgcolor: 'transparent',
-            plot_bgcolor: 'transparent',
-            margin: { l: 50, r: 25, t: 40, b: 40 },
-            xaxis: { gridcolor: '#1d2738', zeroline: false, tickfont: { color: '#b9c7dd' } },
-            yaxis: { gridcolor: '#1d2738', zeroline: false, tickfont: { color: '#b9c7dd' } },
-            showlegend: true,
-            legend: { orientation: 'h', y: -0.25, font: { color: '#cbd6ea' } },
-            ...extra_settings
-        });
-
-        const showPlotMessage = (plotId, message) => {
-            $(`#${plotId}`).innerHTML = `<div style="display:flex; align-items:center; justify-content:center; height:100%; color:var(--muted); padding: 20px; text-align: center;">${message}</div>`;
-        };
-
+        // --- FINAL CORRECTED CHART LOGIC ---
         function generateTracesAndLayout(type, metric) {
-            if (!metric) { return { error: 'Please select a metric.' }; }
+            // 1. Handling Table/Cards without requiring a metric selection first
+            if (!metric && !type.includes('table') && !type.includes('card')) {
+                return { error: ' ' };
+            }
+
             let traces = [];
             let layout = plotlyLayout(metric);
+
+            // Helper to get series data
+            const getSeriesData = (m) => getSeries(m);
+
             try {
                 switch (type) {
-                    case 'line': case 'bar': case 'area': {
-                        const { labels, values } = getSeries(metric);
-                        if (type === 'area') {
-                            traces.push({ type: 'scatter', x: labels, y: values, name: metric, mode: 'lines', fill: 'tozeroy' });
-                        } else {
-                            traces.push({ type: type, x: labels, y: values, name: metric });
-                        }
+                    // ============================================================
+                    // 1. BAR & COLUMN (Supports BOTH old and new names)
+                    // ============================================================
+                    case 'bar':             // Old name (for small graphs)
+                    case 'column-vertical': // New name (for main graph)
+                    case 'clustered-column':
+                        var { labels, values } = getSeriesData(metric);
+                        traces.push({ type: 'bar', x: labels, y: values, name: metric });
                         break;
-                    }
+
+                    case 'bar-h':            // Old name
+                    case 'bar-horizontal':   // New name
+                        var { labels, values } = getSeriesData(metric);
+                        traces.push({ type: 'bar', x: values, y: labels, orientation: 'h', name: metric });
+                        break;
+
+                    case 'stacked-column':
                     case 'stacked-bar':
-                    case 'stacked-area': case 'clustered-column': case 'stacked-column': {
-                        if (!HEADERS.includes('Sales') || !HEADERS.includes('Profit')) { return { error: 'This chart requires "Sales" and "Profit" columns.' }; }
-                        const sales = getSeries('Sales'); const profit = getSeries('Profit');
-                        if (type === 'stacked-area') {
-                            traces.push({ type: 'scatter', x: sales.labels, y: sales.values, name: 'Sales', fill: 'tozeroy', mode: 'none' });
-                            traces.push({ type: 'scatter', x: profit.labels, y: profit.values, name: 'Profit', fill: 'tonexty', mode: 'none' });
-                        } else {
-                            traces.push({ type: 'bar', x: sales.labels, y: sales.values, name: 'Sales' });
-                            traces.push({ type: 'bar', x: profit.labels, y: profit.values, name: 'Profit' });
-                            layout.barmode = type.includes('stack') ? 'stack' : 'group';
-                            if (type === 'stacked-bar') { traces.forEach(t => { t.y = [t.name]; t.x = [t.y.reduce((a, b) => a + b, 0)]; t.orientation = 'h'; }); } // Simplified for example
-                        }
-                        break;
-                    }
-                    case 'pie': case 'donut': {
-                        const { labels, values } = getSeries(metric);
-                        traces.push({ type: 'pie', labels, values, hole: type === 'donut' ? 0.5 : 0, textinfo: 'percent', insidetextorientation: 'radial' });
-                        break;
-                    }
-                    case 'scatter': case 'bubble': {
-                        if (!HEADERS.includes('Sales') || !HEADERS.includes('Profit')) { return { error: 'Requires "Sales" and "Profit" columns.' }; }
-                        const sales = getSeries('Sales'); const profit = getSeries('Profit');
-                        const bubbleSizes = type === 'bubble' ? profit.values.map(p => Math.max(Math.abs(p) / 50, 10)) : 12;
-                        traces.push({ type: 'scatter', x: sales.values, y: profit.values, mode: 'markers', marker: { size: bubbleSizes, color: profit.values, colorscale: 'Viridis', showscale: true } });
-                        layout.xaxis.title = 'Sales'; layout.yaxis.title = 'Profit';
-                        break;
-                    }
-                    case 'box': case 'violin': {
-                        const { values } = getSeries(metric);
-                        traces.push({ y: values, type: type, name: metric });
-                        break;
-                    }
-                    case 'treemap': case 'sunburst': {
-                        const cat1 = AVAILABLE_METRICS.categorical[0];
-                        const cat2 = AVAILABLE_METRICS.categorical[1];
-                        if (!cat1 || !cat2) { return { error: 'This chart requires at least two categorical columns.' }; }
+                        // Auto-detect if we can stack Sales & Profit, otherwise stack the selected metric split by category
+                        var m1 = 'Sales', m2 = 'Profit';
+                        if (!HEADERS.includes(m1)) m1 = metric;
+                        if (!HEADERS.includes(m2)) m2 = metric; // Fallback
 
-                        const hierarchy = DATASET.reduce((acc, row) => {
-                            const parent = row[cat1]; const child = row[cat2]; const value = row.Sales || 0;
-                            if (!acc[parent]) acc[parent] = { children: {}, total: 0 };
-                            acc[parent].children[child] = (acc[parent].children[child] || 0) + value;
-                            acc[parent].total += value;
-                            return acc;
-                        }, {});
+                        var s1 = getSeriesData(m1);
+                        var s2 = getSeriesData(m2);
 
-                        const labels = ['Total']; const parents = [''];
-                        const values = [Object.values(hierarchy).reduce((sum, p) => sum + p.total, 0)];
+                        var isHorizontal = (type === 'stacked-bar');
 
-                        for (const parent in hierarchy) {
-                            labels.push(parent); parents.push('Total'); values.push(hierarchy[parent].total);
-                            for (const child in hierarchy[parent].children) {
-                                labels.push(child); parents.push(parent); values.push(hierarchy[parent].children[child]);
+                        traces.push({
+                            type: 'bar',
+                            x: isHorizontal ? s1.values : s1.labels,
+                            y: isHorizontal ? s1.labels : s1.values,
+                            name: m1,
+                            orientation: isHorizontal ? 'h' : 'v'
+                        });
+                        traces.push({
+                            type: 'bar',
+                            x: isHorizontal ? s2.values : s2.labels,
+                            y: isHorizontal ? s2.labels : s2.values,
+                            name: m2,
+                            orientation: isHorizontal ? 'h' : 'v'
+                        });
+                        layout.barmode = 'stack';
+                        break;
+
+                    // ============================================================
+                    // 2. LINE & AREA
+                    // ============================================================
+                    case 'line':
+                    case 'area':
+                        var { labels, values } = getSeriesData(metric);
+                        traces.push({
+                            type: 'scatter',
+                            mode: 'lines+markers',
+                            x: labels,
+                            y: values,
+                            fill: type === 'area' ? 'tozeroy' : 'none',
+                            name: metric
+                        });
+                        break;
+
+                    case 'stacked-area':
+                        var s1 = getSeriesData('Sales');
+                        var s2 = getSeriesData('Profit');
+                        traces.push({ type: 'scatter', x: s1.labels, y: s1.values, stackgroup: 'one', name: 'Sales' });
+                        traces.push({ type: 'scatter', x: s2.labels, y: s2.values, stackgroup: 'one', name: 'Profit' });
+                        break;
+
+                    // ============================================================
+                    // 3. PROPORTIONAL
+                    // ============================================================
+                    case 'pie':
+                    case 'donut':
+                        var { labels, values } = getSeriesData(metric);
+                        traces.push({
+                            type: 'pie',
+                            labels: labels,
+                            values: values,
+                            hole: type === 'donut' ? 0.4 : 0,
+                            textinfo: 'percent'
+                        });
+                        break;
+
+                    case 'treemap':
+                        var { labels, values } = getSeriesData(metric);
+                        traces.push({
+                            type: 'treemap',
+                            labels: labels,
+                            parents: labels.map(() => ''),
+                            values: values,
+                            textinfo: "label+value"
+                        });
+                        break;
+
+                    // ============================================================
+                    // 4. RELATIONAL
+                    // ============================================================
+                    case 'scatter':
+                    case 'bubble':
+                        // Try to use Sales vs Profit, else use Index vs Metric
+                        var xVals = HEADERS.includes('Sales') ? DATASET.map(r => r.Sales) : DATASET.map((_, i) => i);
+                        var yVals = HEADERS.includes('Profit') ? DATASET.map(r => r.Profit) : DATASET.map(r => r[metric]);
+
+                        traces.push({
+                            type: 'scatter',
+                            mode: 'markers',
+                            x: xVals,
+                            y: yVals,
+                            marker: {
+                                size: type === 'bubble' ? yVals.map(v => Math.max(Math.abs(v) / 20, 5)) : 8,
+                                color: yVals,
+                                colorscale: 'Portland',
+                                showscale: true
                             }
-                        }
-                        traces.push({ type: type, labels, parents, values, branchvalues: 'total' });
+                        });
                         break;
-                    }
-                    case 'heatmap': {
-                        const cat1 = AVAILABLE_METRICS.categorical[0];
-                        const cat2 = AVAILABLE_METRICS.categorical[1];
-                        if (!cat1 || !cat2) { return { error: 'Heatmap requires at least two categorical columns.' }; }
-                        const xLabels = [...new Set(DATASET.map(r => r[cat1]))];
-                        const yLabels = [...new Set(DATASET.map(r => r[cat2]))];
-                        const zValues = yLabels.map(y => xLabels.map(x => {
-                            const filtered = DATASET.filter(r => r[cat1] === x && r[cat2] === y);
-                            return filtered.reduce((sum, r) => sum + (r[metric] || 0), 0);
-                        }));
-                        traces.push({ x: xLabels, y: yLabels, z: zValues, type: 'heatmap', colorscale: 'Viridis' });
+
+                    // ============================================================
+                    // 5. DATA DISPLAY (Fixed Multi-Row Card)
+                    // ============================================================
+                    case 'table':
+                        // Full Data Table
+                        traces.push({
+                            type: 'table',
+                            header: { values: HEADERS, align: "left", fill: { color: "#202a3a" }, font: { size: 12, color: "white" } },
+                            cells: { values: HEADERS.map(h => DATASET.map(r => r[h])), align: "left", fill: { color: "#0f1115" }, font: { size: 11, color: "lightgrey" } }
+                        });
                         break;
-                    }
-                    case 'choropleth': { return { error: `Map charts require specific geographical data (e.g., country codes) which was not found.` }; }
-                    case 'decomposition-tree': { return { error: `Decomposition Tree is a placeholder for a complex custom visual.` }; }
-                    case 'waterfall': case 'funnel': case 'gauge': {
-                        return { error: `The "${type}" chart requires specific data structures. This is a placeholder visual.` };
-                    }
-                    case 'combo': {
-                        if (!HEADERS.includes('Sales') || !HEADERS.includes('Profit')) { return { error: 'Combo chart requires "Sales" and "Profit" columns.' }; }
-                        const sales = getSeries('Sales'); const profit = getSeries('Profit');
-                        traces.push({ type: 'bar', x: sales.labels, y: sales.values, name: 'Sales' });
-                        traces.push({ type: 'scatter', mode: 'lines', x: profit.labels, y: profit.values, name: 'Profit', yaxis: 'y2' });
-                        layout.yaxis2 = { title: 'Profit', overlaying: 'y', side: 'right', showgrid: false, tickfont: { color: '#ff7f0e' } };
+
+                    case 'multi-row-card':
+                        // SOLUTION: Create a "Top 5" Summary Table instead of an error
+                        var { labels, values } = getSeriesData(metric);
+                        // Combine, sort, and slice top 5
+                        var combined = labels.map((l, i) => ({ label: l, value: values[i] }));
+                        combined.sort((a, b) => b.value - a.value);
+                        var top5 = combined.slice(0, 5);
+
+                        traces.push({
+                            type: 'table',
+                            header: { values: ["Category", "Top Values"], align: "left", fill: { color: "#1E90FF" }, font: { color: "white" } },
+                            cells: { values: [top5.map(i => i.label), top5.map(i => i.value)], align: "left", fill: { color: "#1b1f2a" }, font: { color: "white" } }
+                        });
                         break;
-                    }
-                    default: return { error: `Chart type "${type}" is not implemented.` };
+
+                    case 'cards-single':
+                        var total = DATASET.reduce((sum, r) => sum + (r[metric] || 0), 0);
+                        traces.push({
+                            type: "indicator",
+                            mode: "number",
+                            value: total,
+                            title: { text: "Total " + metric },
+                            number: { prefix: "$" }
+                        });
+                        break;
+
+                    case 'matrix':
+                        // Heatmap fallback
+                        var x = DATASET.map(r => r[AVAILABLE_METRICS.categorical[0]]);
+                        var y = DATASET.map(r => r[AVAILABLE_METRICS.categorical[1]] || r[AVAILABLE_METRICS.categorical[0]]);
+                        var z = DATASET.map(r => r[metric]);
+                        traces.push({ x: x, y: y, z: z, type: 'heatmap', colorscale: 'Viridis' });
+                        break;
+
+                    // ============================================================
+                    // 6. SPECIALIZED (Fixed Placeholders - Now Renders Data)
+                    // ============================================================
+                    case 'combo':
+                        var s1 = getSeriesData('Sales');
+                        var s2 = getSeriesData('Profit');
+                        traces.push({ type: 'bar', x: s1.labels, y: s1.values, name: 'Sales' });
+                        traces.push({ type: 'scatter', x: s2.labels, y: s2.values, name: 'Profit', yaxis: 'y2' });
+                        layout.yaxis2 = { title: 'Profit', overlaying: 'y', side: 'right' };
+                        break;
+
+                    case 'waterfall':
+                        // Calculate changes between rows for a basic waterfall
+                        var { labels, values } = getSeriesData(metric);
+                        var limitedLabels = labels.slice(0, 10); // Limit to 10 for readability
+                        var limitedValues = values.slice(0, 10);
+                        traces.push({
+                            type: "waterfall",
+                            orientation: "v",
+                            measure: limitedValues.map(() => "relative"),
+                            x: limitedLabels,
+                            y: limitedValues,
+                            connector: { line: { color: "rgb(63, 63, 63)" } },
+                        });
+                        break;
+
+                    case 'funnel':
+                        // Sort values for funnel effect
+                        var { labels, values } = getSeriesData(metric);
+                        var combined = labels.map((l, i) => ({ label: l, value: values[i] }));
+                        combined.sort((a, b) => b.value - a.value); // Descending
+                        traces.push({
+                            type: 'funnel',
+                            y: combined.map(x => x.label).slice(0, 8),
+                            x: combined.map(x => x.value).slice(0, 8),
+                            textinfo: "value+percent initial"
+                        });
+                        break;
+
+                    case 'gauge':
+                        var total = DATASET.reduce((sum, r) => sum + (r[metric] || 0), 0);
+                        var maxVal = total * 1.5;
+                        traces.push({
+                            type: "indicator",
+                            mode: "gauge+number",
+                            value: total,
+                            title: { text: metric, font: { size: 24 } },
+                            gauge: {
+                                axis: { range: [null, maxVal] },
+                                bar: { color: "#1E90FF" },
+                                steps: [
+                                    { range: [0, maxVal * 0.5], color: "#1b1f2a" },
+                                    { range: [maxVal * 0.5, maxVal], color: "#252b3b" }
+                                ],
+                            }
+                        });
+                        break;
+                    case 'map-scatter':
+                    case 'map-filled':
+                        // Fallback to Bubble chart if no map data, but don't error
+                        var { labels, values } = getSeriesData(metric);
+                        traces.push({
+                            type: 'scatter', mode: 'markers', x: labels, y: values,
+                            marker: { size: 12, color: values, colorscale: 'Earth' },
+                            name: 'Geo Data N/A - Showing Distribution'
+                        });
+                        layout.title.text = "Map Data Missing - Showing Distribution";
+                        break;
+
+                    case 'decomposition-tree':
+                        // Fallback to Sunburst
+                        var { labels, values } = getSeriesData(metric);
+                        traces.push({ type: 'sunburst', labels: labels, parents: labels.map(() => ''), values: values });
+                        break;
+
+                    default:
+                        // Universal Fallback: Bar Chart
+                        var { labels, values } = getSeriesData(metric);
+                        traces.push({ type: 'bar', x: labels, y: values, name: metric });
                 }
+
                 return { traces, layout };
+
             } catch (err) {
-                console.error(`Failed to generate chart type "${type}":`, err);
-                return { error: `Could not draw chart. The data might be in an incompatible format.` };
+                console.error("Graph Error:", err);
+                return { error: 'Could not visualize this data combination.' };
             }
         }
-
         function drawChart(plotId, type, metric) {
             const { traces, layout, error } = generateTracesAndLayout(type, metric);
             if (error) {
@@ -858,21 +1744,169 @@
                     const placeholderTrace = { type: chartType, ...staticData[chartType], mode: chartType === 'gauge' ? 'gauge+number' : undefined };
                     Plotly.react(plotId, [placeholderTrace], plotlyLayout(metric), { responsive: true, displayModeBar: false });
                     showPlotMessage(plotId, error);
-                } else {
-                    showPlotMessage(plotId, error);
-                }
+                } else { showPlotMessage(plotId, error); }
                 return;
             }
-            if (plotId !== 'main-plot') {
-                layout.title.text = ''; // Clear title for grid plots
-            }
+            if (plotId !== 'main-plot') { layout.title.text = ''; }
             Plotly.react(plotId, traces, layout, { responsive: true, displayModeBar: false });
         }
 
-        function drawMain() { drawChart('main-plot', $('#u-type').value, $('#u-metric').value); }
+        function calculateRunningTotal() {
+            // --- CREDIT CHECK ADDED ---
+            if (!useCredit()) {
+                return; // Stop if no credits
+            }
+            const metric = $('#u-metric').value;
+            if (!metric) {
+                alert("Please select a metric in the 'Interactive Chart' panel first.");
+                return;
+            }
+
+            if (!AVAILABLE_METRICS.numeric.includes(metric)) {
+                alert("Running total can only be calculated for a numeric metric.");
+                return;
+            }
+
+            // Try to find a 'Date' column, otherwise use the first categorical column
+            let sortColumn = HEADERS.find(h => h.toLowerCase() === 'date');
+            if (!sortColumn) {
+                sortColumn = AVAILABLE_METRICS.categorical[0];
+            }
+
+            if (!sortColumn) {
+                alert("Cannot calculate running total without a date or categorical column to sort by.");
+                return;
+            }
+
+            // Create a copy of the data and sort it
+            const sortedData = [...DATASET].sort((a, b) => {
+                if (a[sortColumn] < b[sortColumn]) return -1;
+                if (a[sortColumn] > b[sortColumn]) return 1;
+                return 0;
+            });
+
+            // Calculate the running total
+            let runningSum = 0;
+            const labels = [];
+            const values = [];
+
+            for (const row of sortedData) {
+                const value = row[metric] || 0; // Get the value, default to 0
+                runningSum += value;
+
+                labels.push(row[sortColumn]);
+                values.push(runningSum);
+            }
+
+            // Draw the new chart on the main plot
+            const trace = {
+                type: 'scatter',
+                mode: 'lines+markers',
+                x: labels,
+                y: values,
+                name: `Running Total (${metric})`,
+                fill: 'tozeroy' // Fills the area under the line
+            };
+
+            // Get the standard layout and update the title
+            const layout = plotlyLayout(`Running Total of ${metric} (by ${sortColumn})`);
+
+            Plotly.react('main-plot', [trace], layout, { responsive: true, displayModeBar: false });
+
+            // Set the main chart's type dropdown to "line" so it matches what is shown
+            $('#u-type').value = 'line';
+
+            logHistory("Calculate Running Total", `Metric: ${metric}, Sorted by: ${sortColumn}`);
+        }
+        // --- UI & Control Functions ---
+        function loadSummary() {
+            if (DATASET.length === 0) return;
+            const sales = DATASET.map(row => row.Sales || 0);
+            const profits = DATASET.map(row => row.Profit || 0);
+            $('#m-total').textContent = '$' + sales.reduce((a, b) => a + b, 0).toLocaleString();
+            $('#m-avg').textContent = '$' + (profits.length > 0 ? (profits.reduce((a, b) => a + b, 0) / profits.length).toLocaleString(undefined, { maximumFractionDigits: 2 }) : 0);
+            $('#m-max').textContent = '$' + (profits.length > 0 ? Math.max(...profits).toLocaleString() : 0);
+            $('#m-min').textContent = '$' + (profits.length > 0 ? Math.min(...profits).toLocaleString() : 0);
+            logHistory("Calculate Metrics", "Recalculated summary KPIs");
+        }
+
+        function populateControls() {
+            AVAILABLE_METRICS.numeric = HEADERS.filter(h => h && DATASET.length > 0 && typeof DATASET[0][h] === 'number');
+            AVAILABLE_METRICS.categorical = HEADERS.filter(h => h && DATASET.length > 0 && typeof DATASET[0][h] === 'string');
+            const numericOptions = AVAILABLE_METRICS.numeric.map(c => `<option value="${c}">${c}</option>`).join('');
+            const categoricalOptions = AVAILABLE_METRICS.categorical.map(c => `<option value="${c}">${c}</option>`).join('');
+            const allMetricOptions = `<optgroup label="Categorical">${categoricalOptions}</optgroup><optgroup label="Numeric">${numericOptions}</optgroup>`;
+
+            $('#u-metric').innerHTML = allMetricOptions;
+            $('#st-metric').innerHTML = allMetricOptions;
+            $('#pt-metric').innerHTML = allMetricOptions;
+
+            // This part is new:
+            $$('.card-metric-select').forEach(sel => sel.innerHTML = numericOptions);
+
+            // Set defaults for the new cards
+            if (HEADERS.includes('Sales')) $('#metric-1').value = 'Sales';
+            if (HEADERS.includes('Profit')) {
+                $('#metric-2').value = 'Profit';
+                $('#metric-3').value = 'Profit';
+                $('#metric-4').value = 'Profit';
+            }
+            if (HEADERS.includes('Sales')) $('#st-metric').value = 'Sales';
+            if (HEADERS.includes('Profit')) $('#pt-metric').value = 'Profit';
+        }
+
+
+        // This function REPLACES both checkLoginStatus and initCredits
+        async function updateAuthStatus() {
+            const userStatusP = document.getElementById('userStatus');
+            const authLinksDiv = document.getElementById('authLinks');
+
+            try {
+                // This calls your Python backend's /users/me endpoint
+                const response = await fetch('/users/me');
+                const user = await response.json();
+
+                if (user.loggedIn) {
+                    // User IS logged in
+                    userStatusP.textContent = `Logged in as: ${user.username}`;
+                    authLinksDiv.innerHTML = `<a href="/logout">Log Out</a>`;
+
+                    // --- THIS IS THE FIX ---
+                    // Set the global variables from the backend
+                    CURRENT_USER = user;
+                    CURRENT_CREDITS = user.credits || 0;
+                    // ---------------------
+
+                } else {
+                    // User is a GUEST
+                    userStatusP.textContent = 'Using as: Guest';
+                    authLinksDiv.innerHTML = `<a href="/login">Login</a> <a href="/signup">Sign Up</a>`;
+
+                    // --- THIS IS THE FIX ---
+                    CURRENT_USER = null;
+                    CURRENT_CREDITS = 0; // Guests have 0 credits
+                    // ---------------------
+                }
+            } catch (error) {
+                console.error('Error checking login status:', error);
+                userStatusP.textContent = 'Error loading status';
+                authLinksDiv.innerHTML = `<a href="/login">Login</a> <a href="/signup">Sign Up</a>`;
+                CURRENT_USER = null;
+                CURRENT_CREDITS = 0;
+            }
+
+            // After getting user info, update the credit display
+            updateCreditDisplay();
+        }
+
+        updateAuthStatus();
+
+        function drawMain() {
+            drawChart('main-plot', $('#u-type').value, $('#u-metric').value);
+            logHistory("Update Chart", `Main chart to ${$('#u-type').value} for ${$('#u-metric').value}`);
+        }
         function drawSalesTrend() { drawChart('sales-trend', $('#st-type').value, $('#st-metric').value); }
         function drawProfitTrend() { drawChart('profit-trend', $('#pt-type').value, $('#pt-metric').value); }
-
         function drawOverlay() {
             if (!HEADERS.includes('Sales') || !HEADERS.includes('Profit')) { showPlotMessage('overlay-plot', '"Sales" & "Profit" required.'); return; }
             const typeA = $('#ovl-type-a').value.split(' ')[0].toLowerCase();
@@ -887,50 +1921,518 @@
             if (!HEADERS.includes('Sales') || !HEADERS.includes('Profit')) { showPlotMessage('scatter-plot', '"Sales" & "Profit" required.'); return; }
             const { traces, layout } = generateTracesAndLayout('scatter', 'Sales');
             if (traces) {
-                layout.title.text = ''; // Clear title for grid view
+                layout.title.text = '';
                 Plotly.react('scatter-plot', traces, layout, { responsive: true, displayModeBar: false });
             }
         }
+        function drawMain() {
+            // --- CREDIT CHECK ADDED ---
+            if (!useCredit()) {
+                return; // Stop if no credits
+            }
+            // --- END CREDIT CHECK ---
+            drawChart('main-plot', $('#u-type').value, $('#u-metric').value);
+            logHistory("Update Chart", `Main chart to ${$('#u-type').value} for ${$('#u-metric').value}`);
+        }
 
         function refreshAll() {
-            loadSummary();
-            drawMain();
+            populateControls();
+            updateCards(); // Changed from loadSummary()
+            drawChart('main-plot', $('#u-type').value, $('#u-metric').value);
             drawSalesTrend();
             drawProfitTrend();
             drawOverlay();
             drawScatter();
         }
 
-        // --- Event Listeners ---
-        $('#u-type').addEventListener('change', drawMain);
-        $('#u-metric').addEventListener('change', drawMain);
-        $('#btnUpdate').addEventListener('click', drawMain);
-        $('#btnCalc').addEventListener('click', loadSummary);
-
-        $('#st-type').addEventListener('change', drawSalesTrend);
-        $('#st-metric').addEventListener('change', drawSalesTrend);
-        $('#pt-type').addEventListener('change', drawProfitTrend);
-        $('#pt-metric').addEventListener('change', drawProfitTrend);
-        $$('#ovl-type-a, #ovl-type-b').forEach(el => el.addEventListener('change', drawOverlay));
-        $('#sc-refresh').addEventListener('click', drawScatter);
-
         // --- Initial Load ---
         (function () {
-            // Check login status first
-            checkLoginStatus();
-            const defaultCSV = `Date,Region,Product,Sales,Profit
-2023-01-15,North,Widgets,1500,300
-2023-01-20,North,Gadgets,900,150
-2023-02-10,South,Widgets,2200,450
-2023-02-18,South,Gizmos,1800,320
-2023-03-05,North,Gadgets,1300,220
-2023-03-12,West,Widgets,1750,350
-2023-04-21,West,Gizmos,2100,410
-2023-04-28,East,Gadgets,1100,180`;
+            setupSidebar();
+            updateAuthStatus(); // THIS IS THE ONLY ONE YOU NEED
+            updateViewDropdown();
+            $('#fileInput').addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+
+                // --- CREDIT CHECK FOR FILE UPLOAD ---
+                if (!useCredit()) {
+                    e.target.value = null; // Clear the file input
+                    return; // Stop if no credits
+                }
+                // --- END CREDIT CHECK ---
+
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    const csvText = event.target.result;
+                    parseCSV(csvText);
+                    logHistory("File Upload", `Uploaded ${file.name}`);
+                    refreshAll(); // Refresh all charts with new data
+                };
+                reader.onerror = () => alert('Error reading file.');
+                reader.readAsText(file);
+            });
+
+
+            // --- FIXED FULL-SCREEN PDF DOWNLOADER ---
+            document.getElementById('btn-download-pdf').addEventListener('click', async function () {
+                const btn = this;
+                const originalText = btn.innerHTML;
+                btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Generating PDF...`;
+
+                try {
+                    if (typeof html2pdf === 'undefined') throw new Error("PDF Library not loaded.");
+
+                    // 1. Capture Config
+                    const settings = {};
+                    ['metric-1', 'agg-1', 'metric-2', 'agg-2', 'metric-3', 'agg-3', 'metric-4', 'agg-4',
+                        'u-type', 'u-metric', 'st-type', 'st-metric', 'pt-type', 'pt-metric'].forEach(id => {
+                            const el = document.getElementById(id); if (el) settings[id] = el.value;
+                        });
+                    const shareUrl = `${window.location.origin}${window.location.pathname}?config=${btoa(JSON.stringify(settings))}`;
+
+                    // 2. Snapshot Charts (High Quality)
+                    const getChartImage = async (id, height = 400) => {
+                        const el = document.getElementById(id);
+                        if (!el || el.innerHTML === "") return null;
+                        try {
+                            // Capture at 1200px to match PDF width exactly
+                            return await Plotly.toImage(el, { format: 'png', width: 1150, height: height });
+                        } catch (e) { return null; }
+                    };
+
+                    const [imgMain, imgSales, imgProfit, imgOverlay, imgScatter] = await Promise.all([
+                        getChartImage('main-plot', 550),
+                        getChartImage('sales-trend', 350),
+                        getChartImage('profit-trend', 350),
+                        getChartImage('overlay-plot', 350),
+                        getChartImage('scatter-plot', 350)
+                    ]);
+
+                    // 3. Setup PDF Container - EXACT SIZE MATCH
+                    const pdfContainer = document.createElement('div');
+                    // MATCHING THE jsPDF FORMAT BELOW (1200px width)
+                    pdfContainer.style.width = "1200px";
+                    pdfContainer.style.background = "#0f1115";
+                    pdfContainer.style.color = "white";
+                    pdfContainer.style.fontFamily = "sans-serif";
+                    // Remove padding that might push content out
+                    pdfContainer.style.padding = "40px";
+                    pdfContainer.style.boxSizing = "border-box";
+
+                    const createImgCard = (imgData, title) => {
+                        const card = document.createElement('div');
+                        card.style.background = "#1b1f2a";
+                        card.style.border = "1px solid #2d3a54";
+                        card.style.borderRadius = "12px";
+                        card.style.padding = "20px";
+                        card.style.flex = "1";
+                        card.style.pageBreakInside = "avoid";
+                        if (title) card.innerHTML = `<h3 style="color:#9aa4b2; margin:0 0 15px 0; font-size:18px;">${title}</h3>`;
+                        if (imgData) {
+                            const img = document.createElement('img');
+                            img.src = imgData; img.style.width = "100%"; img.style.display = "block";
+                            card.appendChild(img);
+                        }
+                        return card;
+                    };
+
+                    // --- PAGE 1 ---
+                    const page1 = document.createElement('div');
+                    page1.style.height = "900px"; // EXACT PDF HEIGHT
+                    page1.style.pageBreakAfter = "always";
+                    page1.style.display = "flex";
+                    page1.style.flexDirection = "column";
+
+                    page1.innerHTML = `
+            <div style="text-align: center; margin-bottom: 40px; border-bottom: 3px solid #1E90FF; padding-bottom: 20px;">
+                <div style="font-size: 42px; font-weight:900; letter-spacing: 2px;">MORPH-AI-ERA</div>
+                <div style="color: #1E90FF; font-size: 16px; margin-top:5px;">INTELLIGENT ANALYTICS REPORT</div>
+            </div>
+            <h2 style="color: #cfe5ff; margin-bottom: 30px;">Executive Summary</h2>
+        `;
+
+                    const cardsSection = document.querySelector('.metrics').cloneNode(true);
+                    cardsSection.style.display = 'grid';
+                    cardsSection.style.gridTemplateColumns = '1fr 1fr';
+                    cardsSection.style.gap = '30px';
+                    cardsSection.querySelectorAll('.card').forEach(c => {
+                        c.style.background = "#1b1f2a"; c.style.border = "1px solid #2d3a54"; c.style.padding = "40px 20px"; c.style.textAlign = "center";
+                        c.querySelector('.card-controls').style.display = 'none';
+                        c.querySelector('.metric-val').style.fontSize = "36px";
+                    });
+                    page1.appendChild(cardsSection);
+                    pdfContainer.appendChild(page1);
+
+                    // --- PAGE 2 ---
+                    const page2 = document.createElement('div');
+                    page2.style.height = "900px"; // EXACT PDF HEIGHT
+                    page2.style.pageBreakAfter = "always";
+                    page2.innerHTML = `<h2 style="color: #cfe5ff; margin-bottom: 20px; border-left: 5px solid #1E90FF; padding-left: 15px;">Deep Dive Analysis</h2>`;
+                    page2.appendChild(createImgCard(imgMain, "Primary Metric Analysis"));
+                    pdfContainer.appendChild(page2);
+
+                    // --- PAGE 3 ---
+                    const page3 = document.createElement('div');
+                    page3.style.height = "900px"; // EXACT PDF HEIGHT
+                    page3.style.pageBreakAfter = "always";
+                    page3.innerHTML = `<h2 style="color: #cfe5ff; margin-bottom: 20px; border-left: 5px solid #1E90FF; padding-left: 15px;">Trend Metrics</h2>`;
+                    const row1 = document.createElement('div'); row1.style.display = "flex"; row1.style.gap = "30px";
+                    row1.appendChild(createImgCard(imgSales, "Sales Trend"));
+                    row1.appendChild(createImgCard(imgProfit, "Profit Trend"));
+                    page3.appendChild(row1);
+                    pdfContainer.appendChild(page3);
+
+                    // --- PAGE 4 ---
+                    const page4 = document.createElement('div');
+                    page4.style.height = "900px"; // EXACT PDF HEIGHT
+                    // No break after last page
+                    page4.innerHTML = `<h2 style="color: #cfe5ff; margin-bottom: 20px; border-left: 5px solid #1E90FF; padding-left: 15px;">Correlations & Distribution</h2>`;
+                    const row2 = document.createElement('div'); row2.style.display = "flex"; row2.style.gap = "30px";
+                    row2.appendChild(createImgCard(imgOverlay, "Sales vs Profit (Overlay)"));
+                    row2.appendChild(createImgCard(imgScatter, "Cluster Analysis"));
+                    page4.appendChild(row2);
+
+                    const footer = document.createElement('div');
+                    footer.innerHTML = `
+            <div style="background: #161b22; padding: 20px; text-align: center; border-radius:12px; margin-top:60px; border:1px solid #333;">
+                <p style="margin:0 0 10px 0; color:#ccc; font-weight:bold;">Want to explore this data interactively?</p>
+                <a href="${shareUrl}" target="_blank" style="background-color:#1E90FF;color:white;padding:12px 25px;text-decoration:none;border-radius:6px;font-size:14px;font-weight:bold;">Open Live Dashboard</a>
+            </div>
+            <div style="text-align:center; color:#555; font-size:12px; margin-top:15px;">Generated by Morph-Ai-Era</div>
+        `;
+                    page4.appendChild(footer);
+                    pdfContainer.appendChild(page4);
+
+                    // 4. Render
+                    document.body.appendChild(pdfContainer);
+
+                    const opt = {
+                        margin: 0,
+                        filename: 'Morph-AI-Analytics.pdf',
+                        image: { type: 'jpeg', quality: 0.98 },
+                        // Ensure background color is explicitly black
+                        html2canvas: { scale: 2, useCORS: true, backgroundColor: "#0f1115" },
+                        // Exact pixel match: [1200, 900] matches the container width/height
+                        jsPDF: { unit: 'px', format: [1200, 900], orientation: 'landscape' }
+                    };
+
+                    await html2pdf().set(opt).from(pdfContainer).save();
+
+                    document.body.removeChild(pdfContainer);
+                    btn.innerHTML = originalText;
+
+                } catch (error) {
+                    console.error("PDF Error:", error);
+                    alert("Error: " + error.message);
+                    btn.innerHTML = originalText;
+                }
+            });
+
+
+            // --- PROMO MODAL LOGIC ---
+
+            function showPromo() {
+                // Check if user has already seen this (Stored in Browser Memory)
+                const hasSeenPromo = localStorage.getItem('seen_welcome_promo');
+
+                // Check if user is already logged in (Mock check)
+                const isLoggedIn = false; // Change this based on your real auth logic
+
+                if (!hasSeenPromo && !isLoggedIn) {
+                    // Show the modal after a small delay (better UX)
+                    setTimeout(() => {
+                        document.getElementById('promo-modal').style.display = 'flex';
+                    }, 1000);
+                }
+            }
+
+            // Function to close modal
+            window.closePromo = function () {
+                document.getElementById('promo-modal').style.display = 'none';
+                // Remember that user closed it so we don't show it again immediately
+                localStorage.setItem('seen_welcome_promo', 'true');
+            }
+
+            // Function to go to login
+            window.goToLogin = function () {
+                window.location.href = "/login"; // Replace with your login page URL
+            }
+
+            // --- ADD THIS TO YOUR INIT SECTION ---
+            // Find where you call setupSidebar(); and add this line right after:
+            showPromo();
+
+
+
+            // This button calls drawMain, which has the credit check
+            $('#btnUpdate').addEventListener('click', drawMain);
+
+            // This button has its own credit check
+            $('#btnCalc').addEventListener('click', () => {
+                // --- CREDIT CHECK FOR CALC METRICS ---
+                // if (!useCredit()) {
+                //     return; // Stop if no credits
+                // }
+                // --- END CREDIT CHECK ---
+                updateCards();
+            });
+
+
+            // Instead of opening payment directly, OPEN THE MODAL
+            $('#buy-credits-link').addEventListener('click', (e) => {
+                e.preventDefault();
+                document.getElementById('pricing-modal').style.display = 'flex';
+            });
+
+            $('#save-view').addEventListener('click', saveView);
+            $('#load-view').addEventListener('change', loadView);
+            // ---
+
+            // --- ADD THIS NEW LISTENER ---
+            $('#calc-running-total').addEventListener('click', calculateRunningTotal);
+
+
+            // This dropdown also calls drawMain, which has the credit check
+            $$('#u-type, #u-metric').forEach(el => el.addEventListener('change', drawMain));
+
+            // These are free chart updates
+            $$('#st-type, #st-metric').forEach(el => el.addEventListener('change', drawSalesTrend));
+            $$('#pt-type, #pt-metric').forEach(el => el.addEventListener('change', drawProfitTrend));
+            $$('#ovl-type-a, #ovl-type-b').forEach(el => el.addEventListener('change', drawOverlay));
+            $('#sc-refresh').addEventListener('click', drawScatter);
+            $$('.card-metric-select, .card-agg-select').forEach(el => el.addEventListener('change', updateCards));
+
+            // --- Load Default Data ---
+            const defaultCSV = `Date,Region,Product,Sales,Profit,Units_Sold`;
             parseCSV(defaultCSV);
-            refreshAll();
+            refreshAll(); // <-- This runs on page load (no credits charged yet)
         })();
+
+
+        // --- 2. AI FORECAST LOGIC (FIXED) ---
+        document.getElementById('btnForecast').addEventListener('click', async () => {
+            // 1. Credit Check
+            if (!useCredit()) return;
+
+            // 2. Validate Inputs
+            const metric = document.getElementById('u-metric').value;
+            const dateCol = HEADERS.find(h => h.toLowerCase().includes('date') || h.toLowerCase().includes('time') || h.toLowerCase().includes('year'));
+
+            if (!metric || !dateCol) {
+                alert("To use AI Forecasting, please select a Metric (e.g., Sales) and ensure your CSV has a 'Date' column.");
+                return;
+            }
+
+            // 3. UI Loading State
+            const btn = document.getElementById('btnForecast');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Predicting...';
+
+            try {
+                // 4. Call Backend
+                const response = await fetch('/api/analyze/forecast', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        rows: DATASET,
+                        date_col: dateCol,
+                        value_col: metric
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+
+                    let rawHistory = DATASET.map(row => ({
+                        date: row[dateCol],
+                        val: parseFloat(row[metric]) || 0
+                    }));
+
+                    // 2. Sort by Date (Crucial for Line Charts)
+                    rawHistory.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+                    // 3. Create the Historical Trace (Solid Blue Line)
+                    const traceOriginal = {
+                        x: rawHistory.map(r => r.date),
+                        y: rawHistory.map(r => r.val),
+                        name: 'Historical Data',
+                        type: 'scatter',
+                        mode: 'lines', // Force lines so it connects
+                        line: { color: '#1E90FF', width: 2 }
+                    };
+
+                    // 4. Create the Forecast Trace (Dotted Green Line)
+                    const traceForecast = {
+                        x: result.forecast.map(f => f.date),
+                        y: result.forecast.map(f => f.value),
+                        name: 'AI Prediction (Next 3 Months)',
+                        type: 'scatter',
+                        mode: 'lines+markers',
+                        line: { dash: 'dot', color: '#00e676', width: 3 }
+                    };
+
+                    // 5. Draw the Chart (Force X-Axis to be Date)
+                    const layout = plotlyLayout(`AI Forecast: ${metric}`, {
+                        xaxis: { title: 'Timeline', type: 'date', gridcolor: '#1d2738' }, // Force Date Axis
+                        yaxis: { title: metric, gridcolor: '#1d2738' },
+                        shapes: [{ // Vertical line separating history/future
+                            type: 'line',
+                            x0: rawHistory[rawHistory.length - 1].date,
+                            y0: 0,
+                            x1: rawHistory[rawHistory.length - 1].date,
+                            y1: Math.max(...result.forecast.map(f => f.value), ...rawHistory.map(r => r.val)),
+                            line: { color: 'grey', width: 1, dash: 'dash' }
+                        }]
+                    });
+
+                    // Overwrite the main plot completely
+                    Plotly.newPlot('main-plot', [traceOriginal, traceForecast], layout);
+
+                    // Update Dropdown to reflect we are in "Line" mode now
+                    document.getElementById('u-type').value = 'line';
+
+                    alert("AI Forecast generated! (Switched to Time-Series View)");
+
+                } else {
+                    throw new Error(result.error || "Unknown backend error");
+                }
+
+            } catch (e) {
+                console.error(e);
+                alert("Forecast Failed: " + e.message);
+            } finally {
+                btn.innerHTML = originalText;
+            }
+        });
     </script>
+
+    <!-- <div id="promo-modal" class="modal-overlay">
+        <div class="modal-card">
+            <h1 class="modal-title">Welcome to Morph-AI-Era!</h1>
+            <p class="modal-text">
+                Join the Morph-AI era today.<br>
+                Log in now to claim your <strong>10 Free Credits</strong>
+            </p>
+            <div class="modal-buttons">
+                <button class="btn" onclick="closePromo()">Maybe Later</button>
+                <button class="btn primary" onclick="goToLogin()">Log In & Claim</button>
+            </div>
+        </div>
+    </div>
+    <div id="pricing-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-card" style="max-width: 900px; width: 90%; background: #0f1115; border: 1px solid #333;">
+            <h1 class="modal-title" style="margin-bottom: 30px;">Choose Your Credit Pack</h1>
+
+            <button onclick="document.getElementById('pricing-modal').style.display='none'"
+                style="position: absolute; top: 15px; right: 20px; background: none; border: none; color: white; font-size: 24px; cursor: pointer;">&times;</button>
+
+            <div style="display: flex; gap: 20px; justify-content: center; flex-wrap: wrap;">
+
+                <div
+                    style="background: #1b1f2a; border: 1px solid #333; padding: 25px; border-radius: 12px; width: 250px; text-align: center;">
+                    <h3 style="color: #ccc;">Tester</h3>
+                    <h2 style="font-size: 32px; color: white; margin: 10px 0;">₹49</h2>
+                    <p style="color: #888;">20 Credits</p>
+                    <button onclick="openPaymentPopup(49)"
+                        style="width: 100%; padding: 12px; margin-top: 15px; background: #333; color: white; border: none; border-radius: 6px; cursor: pointer;">Buy
+                        Now</button>
+                </div>
+
+                <div
+                    style="background: #15202b; border: 2px solid #1E90FF; padding: 25px; border-radius: 12px; width: 250px; text-align: center; transform: scale(1.05); position: relative;">
+                    <div
+                        style="position: absolute; top: -12px; left: 50%; transform: translateX(-50%); background: #1E90FF; color: white; padding: 2px 12px; font-size: 12px; border-radius: 10px; font-weight: bold;">
+                        BEST VALUE</div>
+                    <h3 style="color: #1E90FF;">Analyst</h3>
+                    <h2 style="font-size: 32px; color: white; margin: 10px 0;">₹199</h2>
+                    <p style="color: #ccc;"><strong>200 Credits</strong></p>
+                    <button onclick="openPaymentPopup(199)"
+                        style="width: 100%; padding: 12px; margin-top: 15px; background: #1E90FF; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold;">Buy
+                        Best Value</button>
+                </div>
+
+                <div
+                    style="background: #1b1f2a; border: 1px solid #333; padding: 25px; border-radius: 12px; width: 250px; text-align: center;">
+                    <h3 style="color: #ccc;">Pro Stack</h3>
+                    <h2 style="font-size: 32px; color: white; margin: 10px 0;">₹999</h2>
+                    <p style="color: #888;">1,500 Credits</p>
+                    <button onclick="openPaymentPopup(999)"
+                        style="width: 100%; padding: 12px; margin-top: 15px; background: #333; color: white; border: none; border-radius: 6px; cursor: pointer;">Go
+                        Pro</button>
+                </div>
+
+            </div>
+        </div>
+    </div> -->
+
+
+    <div id="promo-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-card" style="max-width: 400px; width: 90%;">
+            <h1 class="modal-title">Welcome to Morph-AI-Era!</h1>
+            <p class="modal-text">
+                You have used all your Guest Credits.<br>
+                Join the Morph-AI era today.<br><br>
+                Log in now to claim your <strong>10 Free Credits</strong> instantly!
+            </p>
+            <div class="modal-buttons">
+                <button class="btn" onclick="closePromo()"
+                    style="background:transparent; border:1px solid #555; color:#aaa;">Maybe Later</button>
+                <button class="btn primary" onclick="goToLogin()"
+                    style="background:#1E90FF; color:white; border:none;">Log In & Claim</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="pricing-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-card"
+            style="max-width: 900px; width: 90%; background: #0f1115; border: 1px solid #333; padding: 40px;">
+            <h1 class="modal-title" style="margin-bottom: 30px;">Choose Your Credit Pack</h1>
+
+            <button onclick="document.getElementById('pricing-modal').style.display='none'"
+                style="position: absolute; top: 15px; right: 20px; background: none; border: none; color: white; font-size: 24px; cursor: pointer;">&times;</button>
+
+            <div style="display: flex; gap: 20px; justify-content: center; flex-wrap: wrap;">
+
+                <div
+                    style="background: #1b1f2a; border: 1px solid #333; padding: 25px; border-radius: 12px; width: 250px; text-align: center;">
+                    <h3 style="color: #ccc; margin-top:0;">Tester</h3>
+                    <h2 style="font-size: 32px; color: white; margin: 10px 0;">₹49</h2>
+                    <p style="color: #888;">20 Credits</p>
+                    <button onclick="openPaymentPopup(49)"
+                        style="width: 100%; padding: 12px; margin-top: 15px; background: #333; color: white; border: none; border-radius: 6px; cursor: pointer; transition:0.2s;">Buy
+                        Now</button>
+                </div>
+
+                <div
+                    style="background: #15202b; border: 2px solid #1E90FF; padding: 25px; border-radius: 12px; width: 250px; text-align: center; transform: scale(1.05); position: relative; box-shadow: 0 0 20px rgba(30, 144, 255, 0.1);">
+                    <div
+                        style="position: absolute; top: -12px; left: 50%; transform: translateX(-50%); background: #1E90FF; color: white; padding: 2px 12px; font-size: 12px; border-radius: 10px; font-weight: bold;">
+                        BEST VALUE
+                    </div>
+                    <h3 style="color: #1E90FF; margin-top:0;">Analyst</h3>
+                    <h2 style="font-size: 32px; color: white; margin: 10px 0;">₹199</h2>
+                    <p style="color: #ccc;"><strong>200 Credits</strong></p>
+                    <button onclick="openPaymentPopup(199)"
+                        style="width: 100%; padding: 12px; margin-top: 15px; background: #1E90FF; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold;">Buy
+                        Best Value</button>
+                </div>
+
+                <div
+                    style="background: #1b1f2a; border: 1px solid #333; padding: 25px; border-radius: 12px; width: 250px; text-align: center;">
+                    <h3 style="color: #ccc; margin-top:0;">Pro Stack</h3>
+                    <h2 style="font-size: 32px; color: white; margin: 10px 0;">₹999</h2>
+                    <p style="color: #888;">1,500 Credits</p>
+                    <button onclick="openPaymentPopup(999)"
+                        style="width: 100%; padding: 12px; margin-top: 15px; background: #333; color: white; border: none; border-radius: 6px; cursor: pointer;">Go
+                        Pro</button>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+
 </body>
 
 </html>
