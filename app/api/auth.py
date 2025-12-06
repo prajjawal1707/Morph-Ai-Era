@@ -108,48 +108,49 @@ class ProfileUpdate(BaseModel):
 @router.post("/signup")
 async def signup(username: str = Form(...), email: str = Form(...), password: str = Form(...)):
     try:
-        # This route is correct. It creates the auth.user
-        # Your Supabase trigger should create the public.users profile.
+        # 1. Attempt to Sign Up
         auth_response = supabase.auth.sign_up({
             "email": email,
             "password": password,
             "options": {
-                "data": {
-                    "username": username
-                    # This 'username' will be in the auth.users metadata,
-                    # Your trigger can copy it to the public.users table.
-                }
+                "data": { "username": username }
             }
         })
 
+        # 2. Check if user was created (Supabase sometimes returns None if user exists but doesn't throw error)
         if not auth_response.user:
-            return RedirectResponse(url="/signup?error=Signup+failed,+user+may+already+exist.", status_code=303)
+            # If no user object returned, assume they exist
+            return RedirectResponse(url="/login?error=You+already+have+an+account.+Please+Log+In.", status_code=303)
 
+        # 3. Add 10 Free Credits (Database)
+        # Note: The SQL Trigger we added handles this now, but this is a safe backup
+        try:
+            user_id = auth_response.user.id
+            supabase.table('users').update({"graph_credits": 10}).eq('id', user_id).execute()
+        except Exception:
+            pass # Trigger likely handled it
+
+        # 4. Success - Log them in
+        if auth_response.session:
+            access_token = auth_response.session.access_token
+            response = RedirectResponse(url="/dashboard", status_code=303)
+            response.set_cookie(key="access_token", value=f"Bearer {access_token}", httponly=True, samesite="lax")
+            return response
+            
     except Exception as e:
-        print(f"--- SIGNUP ERROR: {e} ---")
-        return RedirectResponse(url="/signup?error=An+unexpected+error+occurred.", status_code=303)
-
-    # Check if email confirmation is enabled in your Supabase settings
-    if auth_response.user and auth_response.session is None:
-        # This means signup was successful but requires email confirmation
-        return RedirectResponse(url="/login?msg=Signup+Successful!+Please+confirm+your+email.", status_code=303)
-
-    # If email confirmation is DISABLED, the user is logged in immediately
-    # We can create their session
-    if auth_response.session:
-        access_token = auth_response.session.access_token
-        redirect_response = RedirectResponse(url="/dashboard", status_code=303)
-        redirect_response.set_cookie(
-            key="access_token", 
-            value=f"Bearer {access_token}", 
-            httponly=True, 
-            samesite="lax"
-        )
-        return redirect_response
+        error_msg = str(e)
+        print(f"--- SIGNUP ERROR: {error_msg} ---")
         
-    # Fallback just in case
-    return RedirectResponse(url="/login?msg=Signup+Successful!+Please+log+in.", status_code=303)
+        # --- THE FIX IS HERE ---
+        # Check if the error message says the user exists
+        if "User already registered" in error_msg or "already registered" in error_msg:
+            return RedirectResponse(url="/login?error=You+already+have+an+account.+Please+Log+In.", status_code=303)
+            
+        # Default error for other crashes
+        return RedirectResponse(url="/signup?error=An+unexpected+error+occurred.+Try+again.", status_code=303)
 
+    # Fallback
+    return RedirectResponse(url="/login?msg=Account+created!+Please+log+in.", status_code=303)
 
 @router.post("/login")
 async def login(response: Response, email: str = Form(...), password: str = Form(...)):

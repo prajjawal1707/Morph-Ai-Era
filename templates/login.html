@@ -153,8 +153,11 @@
             <div class="input-group">
                 <input type="password" name="password" placeholder="Password" required>
             </div>
+            <div id="forgot-password-box" style="text-align: right; margin-bottom: 15px; display: none;">
+                <a href="/forgot-password" style="color: #ef4444; text-decoration: none; font-size: 14px;">Forgot
+                    password? Reset here</a>
+            </div>
             <button type="submit">Log In</button>
-
         </form>
 
         <div class="divider">OR</div>
@@ -191,6 +194,7 @@
     <script>
         window.onload = function () {
             const messageContainer = document.getElementById('message-container');
+            const forgotPasswordBox = document.getElementById('forgot-password-box');
             const params = new URLSearchParams(window.location.search);
 
             const error = params.get('error');
@@ -199,6 +203,10 @@
             if (error) {
                 messageContainer.textContent = error;
                 messageContainer.style.color = 'red';
+
+                if (forgotPasswordBox) {
+                    forgotPasswordBox.style.display = 'block';
+                }
             } else if (msg) {
                 messageContainer.textContent = msg;
                 messageContainer.style.color = 'green';

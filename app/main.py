@@ -279,3 +279,17 @@ async def get_forecast(request: Request):
     value_col = data.get('value_col')
     
     return generate_forecast(df, date_col, value_col)
+
+# For reset or fogot password
+# Pass the keys to the template
+@app.get("/forgot-password", response_class=HTMLResponse)
+async def get_forgot_password(request: Request):
+    return templates.TemplateResponse("forgot_password.html", {
+        "request": request, 
+        "supabase_url": os.environ.get("SUPABASE_URL"),
+        "supabase_key": os.environ.get("SUPABASE_KEY") # Ensure this is the ANON key in your .env
+    })
+
+@app.get("/reset-password", response_class=HTMLResponse)
+async def get_reset_password(request: Request):
+    return templates.TemplateResponse("reset_password.html", {"request": request})
