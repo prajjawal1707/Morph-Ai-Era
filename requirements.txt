@@ -19,3 +19,4 @@ matplotlib>=3.9.0
 python-jose
 scikit-learn
 statsmodels
+openpyxl

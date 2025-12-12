@@ -802,7 +802,7 @@
             <section class="bar">
                 <div class="group"><span class="label">Upload</span><label for="fileInput" class="file-label"><i
                             class="fa-solid fa-file-arrow-up"></i> File</label><input id="fileInput" type="file"
-                        accept=".csv" /></div>
+                        accept=".csv, .xlsx, .xls, .json" /></div>
                 <div class="group"><span class="label">Views</span><select id="load-view" class="select">
                         <option value="">Load View</option>
                     </select><button id="save-view" class="btn">Save View</button></div>
@@ -1076,8 +1076,12 @@
         async function openPaymentPopup(price) { // <--- NOW ACCEPTS PRICE
             // 1. Auth Check
             if (!CURRENT_USER) {
-                alert("Please log in to buy credits. You will get 10 free credits upon signing up! If you are a new user.");
+                document.getElementById('pricing-modal').style.display = 'none'; // Close pricing modal
+                if (confirm("You must be logged in to purchase credits. Would you like to Sign Up now?")) {
+                    window.location.href = '/signup';
+                }
                 return;
+
             }
 
             try {
@@ -1277,29 +1281,81 @@
 
         // --- UPDATED useCredit function ---
         // This now reports credit use to the backend
-        function useCredit() {
+        // function useCredit() {
+        //     if (CURRENT_CREDITS <= 0) {
+        //         if (CURRENT_USER) {
+        //             alert('You are out of credits! Please purchase more to continue.');
+        //         } else {
+        //             alert('Please log in or sign up to use the app.');
+        //         }
+        //         return false; // Action is blocked
+        //     }
+
+        //     // 1. Subtract credits locally for instant UI update
+        //     CURRENT_CREDITS--;
+        //     updateCreditDisplay();
+
+        //     // 2. Asynchronously update the database
+        //     // We will add this '/api/use-credit' route to auth.py next
+        //     if (CURRENT_USER) {
+        //         fetch('/api/use-credit', { method: 'POST' })
+        //             .catch(err => console.error("Error reporting credit usage:", err));
+        //     }
+
+        //     return true; // Action is allowed
+        // }
+        // --- REPLACES EXISTING useCredit ---
+        async function useCredit() {
+            // 1. Check Balance
             if (CURRENT_CREDITS <= 0) {
                 if (CURRENT_USER) {
+                    // Logged in but empty
                     alert('You are out of credits! Please purchase more to continue.');
+                    // Open pricing modal automatically
+                    document.getElementById('pricing-modal').style.display = 'flex';
                 } else {
-                    alert('Please log in or sign up to use the app.');
+                    // Guest out of credits
+                    if (confirm("You have used all your free guest credits! Please Log In or Sign Up to get more credits and save your work.")) {
+                        window.location.href = '/signup';
+                    }
                 }
-                return false; // Action is blocked
+                return false; // Stop the action
             }
 
-            // 1. Subtract credits locally for instant UI update
+            // 2. Optimistic UI Update (Subtract immediately for speed)
             CURRENT_CREDITS--;
             updateCreditDisplay();
 
-            // 2. Asynchronously update the database
-            // We will add this '/api/use-credit' route to auth.py next
+            // 3. Persist the Deduction
             if (CURRENT_USER) {
-                fetch('/api/use-credit', { method: 'POST' })
-                    .catch(err => console.error("Error reporting credit usage:", err));
+                // --- LOGGED IN: Call Backend API ---
+                // This ensures the database stays in sync
+                try {
+                    const response = await fetch('/api/use-credit', { method: 'POST' });
+                    if (!response.ok) {
+                        console.error("Failed to sync credit use with server");
+                        // Optional: Revert credit if server fails
+                        // CURRENT_CREDITS++; updateCreditDisplay();
+                    }
+                } catch (e) {
+                    console.error(e);
+                }
+            } else {
+                // --- GUEST: Update LocalStorage ---
+                localStorage.setItem('guestCredits', CURRENT_CREDITS);
             }
 
-            return true; // Action is allowed
+            return true; // Allow the action
         }
+
+
+
+
+
+
+
+
+
         function updateCards() {
             for (let i = 1; i <= 4; i++) {
                 const metric = $(`#metric-${i}`).value;
@@ -1753,48 +1809,119 @@
         }
 
 
-        // This function REPLACES both checkLoginStatus and initCredits
+        // // This function REPLACES both checkLoginStatus and initCredits
+        // async function updateAuthStatus() {
+        //     const userStatusP = document.getElementById('userStatus');
+        //     const authLinksDiv = document.getElementById('authLinks');
+
+        //     try {
+        //         // This calls your Python backend's /users/me endpoint
+        //         const response = await fetch('/users/me');
+        //         const user = await response.json();
+
+        //         if (user.loggedIn) {
+        //             // User IS logged in
+        //             userStatusP.textContent = `Logged in as: ${user.username}`;
+        //             authLinksDiv.innerHTML = `<a href="/logout">Log Out</a>`;
+
+        //             // --- THIS IS THE FIX ---
+        //             // Set the global variables from the backend
+        //             CURRENT_USER = user;
+        //             CURRENT_CREDITS = user.credits || 0;
+        //             // ---------------------
+
+        //         } else {
+        //             // User is a GUEST
+        //             userStatusP.textContent = 'Using as: Guest';
+        //             authLinksDiv.innerHTML = `<a href="/login">Login</a> <a href="/signup">Sign Up</a>`;
+
+        //             // --- THIS IS THE FIX ---
+        //             CURRENT_USER = null;
+        //             CURRENT_CREDITS = 0; // Guests have 0 credits
+        //             // ---------------------
+        //         }
+        //     } catch (error) {
+        //         console.error('Error checking login status:', error);
+        //         userStatusP.textContent = 'Error loading status';
+        //         authLinksDiv.innerHTML = `<a href="/login">Login</a> <a href="/signup">Sign Up</a>`;
+        //         CURRENT_USER = null;
+        //         CURRENT_CREDITS = 0;
+        //     }
+
+        //     // After getting user info, update the credit display
+        //     updateCreditDisplay();
+        // }
+
+
+        // --- NEW GLOBALS ---
+        const GUEST_CREDIT_LIMIT = 10;
+
+        // --- REPLACES EXISTING updateAuthStatus ---
         async function updateAuthStatus() {
             const userStatusP = document.getElementById('userStatus');
             const authLinksDiv = document.getElementById('authLinks');
+            const creditLabel = document.querySelector('.credit-display-box div:first-child'); // Target the "Credits Remaining" text
 
             try {
-                // This calls your Python backend's /users/me endpoint
                 const response = await fetch('/users/me');
                 const user = await response.json();
 
                 if (user.loggedIn) {
-                    // User IS logged in
+                    // --- LOGGED IN USER ---
                     userStatusP.textContent = `Logged in as: ${user.username}`;
                     authLinksDiv.innerHTML = `<a href="/logout">Log Out</a>`;
 
-                    // --- THIS IS THE FIX ---
-                    // Set the global variables from the backend
                     CURRENT_USER = user;
                     CURRENT_CREDITS = user.credits || 0;
-                    // ---------------------
+
+                    // Update label to show these are real account credits
+                    if (creditLabel) creditLabel.textContent = "Credits";
 
                 } else {
-                    // User is a GUEST
+                    // --- GUEST USER ---
                     userStatusP.textContent = 'Using as: Guest';
                     authLinksDiv.innerHTML = `<a href="/login">Login</a> <a href="/signup">Sign Up</a>`;
 
-                    // --- THIS IS THE FIX ---
                     CURRENT_USER = null;
-                    CURRENT_CREDITS = 0; // Guests have 0 credits
-                    // ---------------------
+
+                    // Check LocalStorage for guest credits
+                    const localCredits = localStorage.getItem('guestCredits');
+                    if (localCredits !== null) {
+                        CURRENT_CREDITS = parseInt(localCredits, 10);
+                    } else {
+                        // First time guest: Give 10 credits
+                        CURRENT_CREDITS = GUEST_CREDIT_LIMIT;
+                        localStorage.setItem('guestCredits', CURRENT_CREDITS);
+                    }
+
+                    // Update label to indicate Guest mode
+                    if (creditLabel) creditLabel.textContent = "Guest Credits";
                 }
             } catch (error) {
                 console.error('Error checking login status:', error);
-                userStatusP.textContent = 'Error loading status';
-                authLinksDiv.innerHTML = `<a href="/login">Login</a> <a href="/signup">Sign Up</a>`;
+                // Fallback for error state
                 CURRENT_USER = null;
                 CURRENT_CREDITS = 0;
             }
 
-            // After getting user info, update the credit display
             updateCreditDisplay();
         }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
         updateAuthStatus();
 
@@ -1847,27 +1974,73 @@
             setupSidebar();
             updateAuthStatus(); // THIS IS THE ONLY ONE YOU NEED
             updateViewDropdown();
-            $('#fileInput').addEventListener('change', (e) => {
+
+
+
+
+            // $('#fileInput').addEventListener('change', (e) => {
+            //     const file = e.target.files[0];
+            //     if (!file) return;
+
+            //     // --- CREDIT CHECK FOR FILE UPLOAD ---
+            //     if (!useCredit()) {
+            //         e.target.value = null; // Clear the file input
+            //         return; // Stop if no credits
+            //     }
+            //     // --- END CREDIT CHECK --- 
+            //     const reader = new FileReader();
+            //     reader.onload = (event) => {
+            //         const csvText = event.target.result;
+            //         parseCSV(csvText);
+            //         logHistory("File Upload", `Uploaded ${file.name}`);
+            //         refreshAll(); // Refresh all charts with new data
+            //     };
+            //     reader.onerror = () => alert('Error reading file.');
+            //     reader.readAsText(file);
+            // });
+            $('#fileInput').addEventListener('change', async (e) => {
                 const file = e.target.files[0];
                 if (!file) return;
 
-                // --- CREDIT CHECK FOR FILE UPLOAD ---
+                // Credit Check
                 if (!useCredit()) {
-                    e.target.value = null; // Clear the file input
-                    return; // Stop if no credits
+                    e.target.value = null;
+                    return;
                 }
-                // --- END CREDIT CHECK ---
 
-                const reader = new FileReader();
-                reader.onload = (event) => {
-                    const csvText = event.target.result;
-                    parseCSV(csvText);
+                // Prepare form data
+                const formData = new FormData();
+                formData.append('file', file);
+
+                try {
+                    // Send file to Python Backend
+                    const response = await fetch('/api/process-file', {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    if (!response.ok) throw new Error("Server failed to process file");
+
+                    const result = await response.json();
+
+                    // Update Global Variables
+                    HEADERS = result.headers;
+                    DATASET = result.data;
+
+                    // Save to LocalStorage (so analytics page still works)
+                    localStorage.setItem('dashboardData', JSON.stringify({ headers: HEADERS, data: DATASET }));
+
                     logHistory("File Upload", `Uploaded ${file.name}`);
-                    refreshAll(); // Refresh all charts with new data
-                };
-                reader.onerror = () => alert('Error reading file.');
-                reader.readAsText(file);
+                    refreshAll();
+
+                } catch (error) {
+                    console.error(error);
+                    alert('Error parsing file. Please ensure it is a valid CSV or Excel file.');
+                }
             });
+
+
+
 
 
             // --- FIXED FULL-SCREEN PDF DOWNLOADER ---

@@ -19,7 +19,9 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from razorpay.errors import SignatureVerificationError
 import os
-# 1. Define the data model for verification
+from fastapi import FastAPI, Request, HTTPException, UploadFile, File
+from app.services.file_handler import process_uploaded_file # <-- Import the new function
+
 class PaymentVerification(BaseModel):
     razorpay_order_id: str
     razorpay_payment_id: str
@@ -293,3 +295,21 @@ async def get_forgot_password(request: Request):
 @app.get("/reset-password", response_class=HTMLResponse)
 async def get_reset_password(request: Request):
     return templates.TemplateResponse("reset_password.html", {"request": request})
+
+@app.post("/api/process-file")
+async def process_file_endpoint(file: UploadFile = File(...)):
+    # 1. Read the file content
+    contents = await file.read()
+    
+    # 2. Process it using the handler we just wrote
+    df = process_uploaded_file(contents, file.filename)
+    
+    if df is None:
+        raise HTTPException(status_code=400, detail="Could not parse file. Ensure it is a valid CSV, Excel, or JSON file.")
+        
+    # 3. Convert DataFrame to JSON-compatible format
+    # 'orient=records' creates a list of objects: [{"col1": val1}, {"col1": val2}]
+    data = df.to_dict(orient='records')
+    headers = df.columns.tolist()
+    
+    return {"headers": headers, "data": data}

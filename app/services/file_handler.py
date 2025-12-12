@@ -1,11 +1,6 @@
-
-# app/services/file_handler.py
-
 import pandas as pd
 from fastapi import UploadFile
 from io import BytesIO
-
-# This will hold our data in memory
 DATAFRAME: pd.DataFrame | None = None
 
 def calculate_all_metrics(df: pd.DataFrame) -> pd.DataFrame:
@@ -15,7 +10,6 @@ def calculate_all_metrics(df: pd.DataFrame) -> pd.DataFrame:
     """
     print("Calculating extended metrics...")
     
-    # Date Handling
     if "Date" in df.columns:
         try:
             df["Date"] = pd.to_datetime(df["Date"])
@@ -95,3 +89,35 @@ def get_dataframe() -> pd.DataFrame | None:
     Returns the currently loaded DataFrame.
     """
     return DATAFRAME
+
+import io
+
+# ... (keep your existing get_dataframe function if it's there) ...
+
+def process_uploaded_file(file_content: bytes, filename: str):
+    """
+    Smartly detects file type and returns a Pandas DataFrame.
+    Supports: .csv, .xlsx, .xls, .json, .parquet
+    """
+    filename = filename.lower()
+    
+    try:
+        df = None
+        if filename.endswith('.csv'):
+            df = pd.read_csv(io.BytesIO(file_content))
+            
+        elif filename.endswith(('.xls', '.xlsx')):
+            # Requires 'openpyxl' library installed
+            df = pd.read_excel(io.BytesIO(file_content))
+            
+        elif filename.endswith('.json'):
+            df = pd.read_json(io.BytesIO(file_content))
+            
+        elif filename.endswith('.parquet'):
+            df = pd.read_parquet(io.BytesIO(file_content))
+            
+        return df
+
+    except Exception as e:
+        print(f"Error parsing file {filename}: {e}")
+        return None
