@@ -99,7 +99,7 @@ def get_summary():
 @app.get("/", response_class=HTMLResponse)
 async def get_homepage(request: Request):
     return templates.TemplateResponse("dashboard.html", {"request": request})
-
+@app.head("/")  
 # Routes for all other pages in the application
 @app.get("/dashboard", response_class=HTMLResponse)
 async def get_dashboard(request: Request):
