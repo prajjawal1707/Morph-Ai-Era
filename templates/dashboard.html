@@ -1927,6 +1927,75 @@
             updateAuthStatus(); // THIS IS THE ONLY ONE YOU NEED
             updateViewDropdown();
 
+            function askUserForSheet(sheets) {
+                return new Promise((resolve) => {
+                    // Create modal HTML dynamically
+                    const modal = document.createElement('div');
+                    modal.className = 'modal-overlay';
+                    modal.style.display = 'flex'; // Show immediately
+
+                    let buttonsHtml = sheets.map(sheet =>
+                        `<button class="sheet-btn" data-sheet="${sheet}">📄 ${sheet}</button>`
+                    ).join('');
+
+                    modal.innerHTML = `
+                        <div class="modal-card">
+                            <h2 class="modal-title">Select a Sheet</h2>
+                            <p class="modal-text">This file has multiple sheets. Which one do you want to analyze?</p>
+                            <div style="max-height: 300px; overflow-y: auto; margin-bottom: 15px;">
+                                ${buttonsHtml}
+                            </div>
+                            <button class="btn" id="cancel-sheet-select">Cancel</button>
+                        </div>
+                    `;
+
+                    document.body.appendChild(modal);
+
+                    // Add Click Listeners
+                    modal.querySelectorAll('.sheet-btn').forEach(btn => {
+                        btn.addEventListener('click', () => {
+                            const selected = btn.getAttribute('data-sheet');
+                            document.body.removeChild(modal);
+                            resolve(selected);
+                        });
+                    });
+
+                    document.getElementById('cancel-sheet-select').addEventListener('click', () => {
+                        document.body.removeChild(modal);
+                        resolve(null); // User cancelled
+                    });
+                });
+            }
+
+            // --- 2. HELPER: Pure API Call ---
+            async function uploadToBackend(file, sheetName = null) {
+                const formData = new FormData();
+                formData.append('file', file);
+                if (sheetName) formData.append('sheet', sheetName);
+
+                const response = await fetch('/api/process-file', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    const err = await response.json();
+                    throw new Error(err.detail || "Server failed to process file");
+                }
+                return await response.json();
+            }
+
+            // --- 3. HELPER: Handle Multi-Sheet Logic ---
+            async function handleMultiSheetCase(file, sheetList) {
+                // Show the popup
+                const chosenSheet = await askUserForSheet(sheetList);
+
+                // If user clicked Cancel, return null
+                if (!chosenSheet) return null;
+
+                // Retry the upload with the specific sheet name
+                return await uploadToBackend(file, chosenSheet);
+            }
 
             $('#fileInput').addEventListener('change', async (e) => {
                 const file = e.target.files[0];
