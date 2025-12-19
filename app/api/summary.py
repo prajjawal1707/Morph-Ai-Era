@@ -1,9 +1,3 @@
-
-
-
-
-
-
 from fastapi import APIRouter
 from app.services.file_handler import get_dataframe
 

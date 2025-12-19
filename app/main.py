@@ -19,8 +19,9 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from razorpay.errors import SignatureVerificationError
 import os
-from fastapi import FastAPI, Request, HTTPException, UploadFile, File
+from fastapi import FastAPI, Request, HTTPException, UploadFile, File, Form
 from app.services.file_handler import process_uploaded_file # <-- Import the new function
+from io import BytesIO
 
 class PaymentVerification(BaseModel):
     razorpay_order_id: str
@@ -297,19 +298,54 @@ async def get_reset_password(request: Request):
     return templates.TemplateResponse("reset_password.html", {"request": request})
 
 @app.post("/api/process-file")
-async def process_file_endpoint(file: UploadFile = File(...)):
-    # 1. Read the file content
-    contents = await file.read()
-    
-    # 2. Process it using the handler we just wrote
-    df = process_uploaded_file(contents, file.filename)
-    
-    if df is None:
-        raise HTTPException(status_code=400, detail="Could not parse file. Ensure it is a valid CSV, Excel, or JSON file.")
+async def process_file(
+    file: UploadFile = File(...), 
+    sheet: str = Form(None)  # New optional parameter
+):
+    try:
+        contents = await file.read()
+        file_bytes = BytesIO(contents)
+        df = None
         
-    # 3. Convert DataFrame to JSON-compatible format
-    # 'orient=records' creates a list of objects: [{"col1": val1}, {"col1": val2}]
-    data = df.to_dict(orient='records')
-    headers = df.columns.tolist()
-    
-    return {"headers": headers, "data": data}
+        # 1. Handle Excel Files
+        if file.filename.endswith(('.xlsx', '.xls')):
+            # Load the Excel file wrapper to check sheet names first
+            xls = pd.ExcelFile(file_bytes)
+            sheet_names = xls.sheet_names
+            
+            # CASE A: Multiple Sheets found & User hasn't chosen one yet
+            if len(sheet_names) > 1 and not sheet:
+                return {
+                    "status": "multi_sheet", 
+                    "sheets": sheet_names,
+                    "message": "Multiple sheets found."
+                }
+            
+            # CASE B: User selected a sheet OR there is only one sheet
+            target_sheet = sheet if sheet else 0
+            df = pd.read_excel(file_bytes, sheet_name=target_sheet)
+
+        # 2. Handle CSV Files
+        elif file.filename.endswith('.csv'):
+            # Try different encodings to avoid errors
+            try:
+                df = pd.read_csv(file_bytes, encoding='utf-8')
+            except UnicodeDecodeError:
+                file_bytes.seek(0)
+                df = pd.read_csv(file_bytes, encoding='ISO-8859-1')
+        
+        else:
+            return JSONResponse(status_code=400, content={"detail": "Invalid file type. Please upload CSV or Excel."})
+
+        # 3. Success: Process Data
+        # Replace NaN with None (null in JSON) and infinite with 0
+        df = df.where(pd.notnull(df), None)
+        
+        return {
+            "status": "success",
+            "headers": df.columns.tolist(),
+            "data": df.to_dict(orient='records')
+        }
+
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"detail": f"Error parsing file: {str(e)}"})
