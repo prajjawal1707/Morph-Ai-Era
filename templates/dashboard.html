@@ -1717,11 +1717,20 @@
             Plotly.react(plotId, traces, layout, { responsive: true, displayModeBar: false });
         }
 
+
+
         function calculateRunningTotal() {
             // --- CREDIT CHECK ADDED ---
-            if (!useCredit()) {
-                return; // Stop if no credits
+            if (!DATASET || DATASET.length === 0) {
+                alert("Please upload a file first.");
+                return; // Stop here. No credit lost.
             }
+
+            if (CURRENT_CREDITS <= 0) {
+                useCredit();
+                return;
+            }
+            useCredit();
             const metric = $('#u-metric').value;
             if (!metric) {
                 alert("Please select a metric in the 'Interactive Chart' panel first.");
@@ -1784,6 +1793,13 @@
 
             logHistory("Calculate Running Total", `Metric: ${metric}, Sorted by: ${sortColumn}`);
         }
+
+
+
+
+
+
+
         // --- UI & Control Functions ---
         function loadSummary() {
             if (DATASET.length === 0) return;
