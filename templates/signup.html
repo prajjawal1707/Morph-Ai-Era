@@ -161,15 +161,27 @@
         <div class="divider">OR</div>
 
         <div id="g_id_onload" data-client_id="312955081543-k2ev0ahe3v8pcbo1i7mhfsalt0cr6vqs.apps.googleusercontent.com"
-            data-callback="handleCredentialResponse">
+            data-context="signup" data-ux_mode="popup" data-callback="handleCredentialResponse"
+            data-auto_prompt="false">
         </div>
-        <div class="g_id_signin" data-type="standard"></div>
+
+        <div class="g_id_signin" data-type="standard" data-shape="rectangular" data-theme="outline"
+            data-text="signup_with" data-size="large" data-logo_alignment="left" data-width="320">
+        </div>
 
         <p class="login-link">Already have an account? <a href="/login">Log In</a></p>
     </div>
     <div id="message-container" style="color: red; margin-bottom: 16px;"></div>
 
     <script>
+
+        window.onload = function () {
+            const params = new URLSearchParams(window.location.search);
+            if (params.get('error')) {
+                document.getElementById('message-container').textContent = params.get('error');
+            }
+        };
+
         window.onload = function () {
             const messageContainer = document.getElementById('message-container');
             const params = new URLSearchParams(window.location.search);
@@ -186,6 +198,7 @@
             }
         };
     </script>
+    <script src="https://accounts.google.com/gsi/client" async></script>
     <script>
         // This function is called by Google when the user successfully signs in
         // This function is called by Google when the user successfully signs in

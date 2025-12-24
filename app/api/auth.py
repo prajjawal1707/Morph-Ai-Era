@@ -71,14 +71,12 @@ async def signup(username: str = Form(...), email: str = Form(...), password: st
             }
         })
 
-        if not auth_response.user:
-            return RedirectResponse(url="/login?error=You+already+have+an+account.+Please+Log+In.", status_code=303)
         try:
             user_id = auth_response.user.id
             supabase.table('users').update({"graph_credits": 10}).eq('id', user_id).execute()
-        except Exception:
-            pass # Trigger likely handled it
-
+        except Exception as e:
+            print(f"Error assigning free credits: {e}")
+            pass
         # 4. Success - Log them in
         if auth_response.session:
             access_token = auth_response.session.access_token
@@ -185,29 +183,71 @@ async def update_profile(
         print(f"--- PROFILE UPDATE ERROR: {e} ---")
         raise HTTPException(status_code=500, detail="Error updating profile")
 
+
+
+
+
+
 @router.post("/auth/google/callback")
 async def google_auth_callback(request: Request):
     form_data = await request.form()
-    credential = form_data.get('credential') # This is the ID token from Google
+    credential = form_data.get('credential')
     
     if not credential:
         raise HTTPException(status_code=400, detail="No credential provided")
+    
     try:
+        # 1. Sign in with Google (Auth Layer)
         auth_response = supabase.auth.sign_in_with_id_token({
             "provider": "google",
             "token": credential
         })        
+        
         if not auth_response.session:
             raise Exception("Google Sign-In failed with Supabase.")
-        access_token = auth_response.session.access_token
         
+        user = auth_response.user
+        
+        # 2. CHECK: Does the profile exist in the public 'users' table?
+        try:
+            profile_response = supabase.table('users').select("*").eq('id', user.id).execute()
+            
+            # 3. HANDLE MISSING PROFILE (This is a New User)
+            if not profile_response.data:
+                print(f"New Google User detected (No Profile): {user.email}")
+                
+                # Get username from metadata or fallback to email
+                raw_username = user.user_metadata.get('full_name') or user.user_metadata.get('name')
+                if not raw_username:
+                    raw_username = user.email.split('@')[0]
+                
+                # Create the profile MANUALLY with 10 Credits
+                new_profile = {
+                    "id": user.id,
+                    "email": user.email,
+                    "username": raw_username,
+                    "graph_credits": 10  # <--- GIVING THE FREE CREDITS HERE
+                }
+                
+                supabase.table('users').insert(new_profile).execute()
+                print("Profile created successfully with 10 credits.")
+                
+        except Exception as db_error:
+            # If this fails, we log it but still allow login (Safety Net)
+            print(f"Warning: Profile Sync Failed: {db_error}")
+
+        # 4. Success - Log them in
+        access_token = auth_response.session.access_token
         response = RedirectResponse(url="/dashboard", status_code=303)
         response.set_cookie(key="access_token", value=f"Bearer {access_token}", httponly=True, samesite="lax")
         return response
 
     except Exception as e:
-        print(f"Google Sign-In Error: {e}")
+        print(f"Google Sign-In Critical Error: {e}")
         return RedirectResponse(url="/login?error=Google+sign-in+failed", status_code=303)
+
+
+
 
 RAZORPAY_KEY_ID = os.environ.get("RAZORPAY_KEY_ID")
 RAZORPAY_KEY_SECRET = os.environ.get("RAZORPAY_KEY_SECRET")
@@ -301,3 +341,4 @@ async def use_credit(current_user: dict = Depends(get_current_user)):
         print(f"--- USE CREDIT ERROR: {e} ---")
         # Don't block the user, just log the error
         return {"status": "error", "message": "Failed to log credit use"}
+    
