@@ -690,6 +690,22 @@
             justify-content: center;
         }
 
+        .icon-btn {
+            background: transparent;
+            border: 1px solid #2d3a54;
+            color: #9aa4b2;
+            padding: 5px 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .icon-btn:hover {
+            background: #1E90FF;
+            color: white;
+            border-color: #1E90FF;
+        }
+
         /* Add this to your style section */
         #btnHealth,
         #btnForecast {
@@ -933,6 +949,10 @@
                 <div class="card panel">
                     <div class="head">
                         <span>Sales Trend</span>
+                        <button class="icon-btn" onclick="downloadSingleGraph('sales-trend', 'Sales_Trend_Graph')"
+                            title="Download Image">
+                            <i class="fa-solid fa-download"></i>
+                        </button>
                         <div class="controls">
                             <select id="st-type" class="select">
                                 <optgroup label="Common Charts">
@@ -956,6 +976,10 @@
                 <div class="card panel">
                     <div class="head">
                         <span>Profit Trend</span>
+                        <button class="icon-btn" onclick="downloadSingleGraph('profit-trend', 'Profit_Trend_Graph')"
+                            title="Download Image">
+                            <i class="fa-solid fa-download"></i>
+                        </button>
                         <div class="controls">
                             <select id="pt-type" class="select">
                                 <optgroup label="Common Charts">
@@ -978,6 +1002,11 @@
                 </div>
                 <div class="card panel">
                     <div class="head"><span>Sales vs Profit (Overlay)</span>
+                        <button class="icon-btn" onclick="downloadSingleGraph('sales-trend', 'Sales_Trend_Graph')"
+                            title="Download Image">
+                            <i class="fa-solid fa-download"></i>
+                        </button>
+
                         <div class="controls">
                             <select id="ovl-type-a" class="select">
                                 <option value="bar">Bar (Sales)</option>
@@ -994,6 +1023,11 @@
                 </div>
                 <div class="card panel">
                     <div class="head"><span>Sales vs Profit (Scatter)</span>
+                        <button class="icon-btn"
+                            onclick="downloadSingleGraph('scatter-plot', 'Sales_Profit_Scatter_Graph')"
+                            title="Download Image">
+                            <i class="fa-solid fa-download"></i>
+                        </button>
                         <div class="controls">
                             <button id="sc-refresh" class="btn"><i class="fa-solid fa-arrows-rotate"></i></button>
                             <i class="fa-solid fa-expand expand-btn" data-plot="scatter-plot"></i>
@@ -1922,6 +1956,115 @@
             logHistory("Update Chart", `Main chart to ${$('#u-type').value} for ${$('#u-metric').value}`);
         }
 
+        // --- INITIALIZATION ON LOAD ---
+        window.addEventListener('DOMContentLoaded', async () => {
+            await checkUserSession(); // See if user is logged in
+
+            if (CURRENT_USER) {
+                // If Logged In: Use Database Credits
+                CURRENT_CREDITS = CURRENT_USER.credits;
+                updateAuthUI();
+            } else {
+                // If Guest: Check Browser Memory (LocalStorage)
+                const stored = localStorage.getItem('guestCredits');
+
+                if (stored === null) {
+                    // First time ever? Give 3 Credits & Save it.
+                    CURRENT_CREDITS = 3;
+                    localStorage.setItem('guestCredits', 3);
+                } else {
+                    // Returning guest? Load what is left.
+                    CURRENT_CREDITS = parseInt(stored);
+                }
+            }
+
+            updateCreditDisplay(); // Show the number on screen
+
+            // Restore previous dashboard state if exists
+            if (localStorage.getItem('dashboardData')) {
+                const saved = JSON.parse(localStorage.getItem('dashboardData'));
+                if (saved.data && saved.headers) {
+                    DATASET = saved.data;
+                    HEADERS = saved.headers;
+                    refreshAll();
+                }
+            }
+        });
+
+
+        // --- DOWNLOAD SINGLE GRAPH WITH SUBTLE WATERMARK ---
+        async function downloadSingleGraph(elementId, fileName) {
+            const graphDiv = document.getElementById(elementId);
+
+            // 1. Guard: Check if graph exists/has data
+            if (!graphDiv || !graphDiv.data || graphDiv.data.length === 0) {
+                alert("No graph to download! Please upload data first.");
+                return;
+            }
+
+            // --- Define the Watermark Style ---
+            const watermark = {
+                text: '@ Morph-AI-Era',
+                x: 1,          // 1 = Far right edge
+                y: -0.1,       // Slightly below the bottom axis
+                xref: 'paper', // Position relative to chart container, not data coords
+                yref: 'paper',
+                showarrow: false,
+                xanchor: 'right',
+                yanchor: 'top',
+                font: {
+                    size: 10,       // Small font size
+                    color: '#9aa4b2', // Muted gray color to blend in
+                    family: 'sans-serif'
+                },
+                opacity: 0.8 // Slightly transparent so it's not distracting
+            };
+
+            try {
+                const btn = event.currentTarget; // Get button to show loading state
+                const originalHtml = btn.innerHTML;
+                btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i>`;
+                btn.disabled = true;
+
+                // 2. Get existing annotations (if any) so we don't break them
+                const currentAnnotations = graphDiv.layout.annotations || [];
+
+                // 3. Add watermark temporarily
+                // We create a new list containing old notes + our new watermark
+                await Plotly.relayout(graphDiv, {
+                    annotations: [...currentAnnotations, watermark]
+                });
+
+                // 4. Trigger High-Res Download
+                await Plotly.downloadImage(graphDiv, {
+                    format: 'png',
+                    width: 1200,   // Fixed width for consistency
+                    height: 800,   // Fixed height for consistency
+                    filename: fileName + '_' + new Date().toISOString().slice(0, 10),
+                    scale: 2       // Retina quality (makes text crisp)
+                });
+
+                // 5. Remove watermark (Restore original state)
+                // We put back just the original annotations list
+                await Plotly.relayout(graphDiv, {
+                    annotations: currentAnnotations
+                });
+
+                btn.innerHTML = originalHtml;
+                btn.disabled = false;
+
+            } catch (error) {
+                console.error(error);
+                alert("Error downloading image.");
+                if (btn) {
+                    btn.innerHTML = originalHtml;
+                    btn.disabled = false;
+                }
+            }
+        }
+
+
+
 
         function refreshAll() {
             populateControls();
@@ -2496,7 +2639,7 @@ ${result.score > 80 ? "Data is good for Forecasting." : "We recommend cleaning e
         localStorage.removeItem('lastCSV');
 
         // ADD THIS LINE to reset old guest credits from 10 to 3
-        if (!CURRENT_USER) localStorage.removeItem('guestCredits');
+        // if (!CURRENT_USER) localStorage.removeItem('guestCredits');
 
         DATASET = [];
         HEADERS = [];
