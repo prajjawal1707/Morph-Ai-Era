@@ -177,7 +177,7 @@ class OrderRequest(BaseModel):
 async def create_order(request: OrderRequest, current_user: dict = Depends(get_current_user)):
     try:
         # 1. Security Check
-        allowed_prices = [49, 199, 999] 
+        allowed_prices = [1, 49, 199, 999] 
         if request.amount not in allowed_prices:
             raise HTTPException(status_code=400, detail="Invalid price package")
 

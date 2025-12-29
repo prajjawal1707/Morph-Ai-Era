@@ -7,16 +7,16 @@
 
     <title>Morph-AI-Era | Free Interactive Data Analytics Dashboard</title>
     <meta name="description"
-        content="Morph-AI-Era is a free AI-powered tool to visualize CSV data instantly. Create interactive dashboards, track KPIs, and analyze sales trends without coding.">
+        content="Morph-AI-Era is a free AI-powered tool to visualize data instantly. Create interactive dashboards, track KPIs, and analyze sales trends without coding.">
     <meta name="keywords"
-        content="Morph-AI-Era, Morph Era, Data Visualization, CSV to Graph, Free Dashboard, Python Analytics, Morph AI">
+        content="Morph-AI-Era, Morph Era, Data Visualization, DATA to Graph, Free Dashboard, Python Analytics, Morph AI">
     <meta name="author" content="Prajjawal">
 
     <meta name="robots" content="index, follow">
 
     <meta property="og:title" content="Morph-AI-Era - Visualize Data in Seconds">
     <meta property="og:description"
-        content="Upload raw CSV files and get instant interactive charts and running totals. Free & Fast.">
+        content="Upload raw DATA files and get instant Dashboard running with interactive charts, KPIs, Ai Forecasting and insights. No coding required!">
     <meta property="og:image" content="https://morph-ai-era.online/dashboard">
     <meta property="og:url" content="https://morph-ai-era.online/dashboard">
     <meta property="og:type" content="website">
@@ -26,6 +26,7 @@
     <!-- <title>MORPH-AI-ERA • Dashboard</title> -->
     <!-- Google tag (gtag.js) -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-K25LC6ESHG"></script>
+    <script src="https://cdn.jsdelivr.net/gh/gitbrent/pptxgenjs@3.12.0/dist/pptxgen.bundle.js"></script>
     <script>
         window.dataLayer = window.dataLayer || [];
         function gtag() { dataLayer.push(arguments); }
@@ -874,6 +875,10 @@
                         style="background: #1E90FF; border:none; display:flex; align-items:center; gap:8px;">
                         <i class="fa-solid fa-file-pdf"></i> Download Smart PDF
                     </button>
+                    <button id="btn-download-ppt" class="btn primary"
+                        style="background: #D24726; border:none; display:flex; align-items:center; gap:8px; margin-left: 10px;">
+                        <i class="fa-solid fa-file-powerpoint"></i> Export PPT
+                    </button>
                 </div>
                 <div style="flex-basis: 100%; height: 0;"></div>
                 <div class="group"
@@ -1629,10 +1634,7 @@
                         var z = DATASET.map(r => r[metric]);
                         traces.push({ x: x, y: y, z: z, type: 'heatmap', colorscale: 'Viridis' });
                         break;
-
-                    // ============================================================
-                    // 6. SPECIALIZED (Fixed Placeholders - Now Renders Data)
-                    // ============================================================
+                    // 6. SPECIALIZED (Fixed Placeholders - Now Renders Data)                        
                     case 'combo':
                         var s1 = getSeriesData('Sales');
                         var s2 = getSeriesData('Profit');
@@ -1978,6 +1980,26 @@
                 }
             }
 
+            //Code for enterprise model for students
+            // --- ADD THIS INSIDE DOMContentLoaded ---
+            // Check for Enterprise Verification URL
+            const urlParams = new URLSearchParams(window.location.search);
+
+            if (urlParams.get('action') === 'verify_enterprise') {
+                // 1. Clean URL (Hide the action param)
+                window.history.replaceState({}, document.title, "/dashboard");
+
+                // 2. Alert User & Trigger Payment
+                setTimeout(() => {
+                    alert("🎓 Enterprise Account Detected!\n\nTo activate your 50,000 Free Credits, we need to verify you are a real user.\n\nPlease complete the ₹1 verification payment.");
+
+                    // 3. Force Payment Popup (Price = 1)
+                    initiatePayment(1);
+                }, 500);
+            }
+
+
+
             updateCreditDisplay(); // Show the number on screen
 
             // Restore previous dashboard state if exists
@@ -2202,7 +2224,92 @@
             });
 
 
+            // --- EXPORT TO POWERPOINT (PPTX) ---
+            document.getElementById('btn-download-ppt').addEventListener('click', async function () {
+                // 1. Guard: Check for Data
+                if (!DATASET || DATASET.length === 0) {
+                    alert("Please upload a file first.");
+                    return;
+                }
 
+                // 2. (Optional) Check Credits
+                /*
+                if (CURRENT_CREDITS <= 0) { useCredit(); return; }
+                useCredit(); // Charge 1 credit for a PPT
+                */
+
+                const btn = this;
+                const originalText = btn.innerHTML;
+                btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Generating PPT...`;
+
+                try {
+                    // Initialize PowerPoint
+                    let pres = new PptxGenJS();
+                    pres.layout = 'LAYOUT_16x9';
+
+                    // --- SLIDE 1: Title Slide ---
+                    let slide1 = pres.addSlide();
+                    slide1.background = { color: "111111" }; // Dark Background
+                    slide1.addText("Morph-AI-Era Analytics", {
+                        x: 1, y: 1.5, w: '80%', fontSize: 36, color: "FFFFFF", bold: true, align: "center"
+                    });
+                    slide1.addText("Generated Dashboard Report", {
+                        x: 1, y: 2.5, w: '80%', fontSize: 18, color: "aaaaaa", align: "center"
+                    });
+                    slide1.addText(`Date: ${new Date().toLocaleDateString()}`, {
+                        x: 1, y: 3, w: '80%', fontSize: 14, color: "1E90FF", align: "center"
+                    });
+
+                    // Helper to add chart slides
+                    const addChartSlide = async (title, elementId) => {
+                        const el = document.getElementById(elementId);
+                        if (!el || el.innerHTML === "") return;
+
+                        // Capture Image
+                        const imgData = await Plotly.toImage(el, { format: 'png', width: 1000, height: 600 });
+
+                        // Create Slide
+                        let slide = pres.addSlide();
+                        slide.background = { color: "111111" };
+
+                        // Add Title
+                        slide.addText(title, {
+                            x: 0.5, y: 0.5, w: '90%', fontSize: 24, color: "FFFFFF", bold: true
+                        });
+
+                        // Add Image
+                        slide.addImage({ data: imgData, x: 0.5, y: 1.2, w: 8.5, h: 5 });
+
+                        // Add Watermark
+                        slide.addText("Made by Morph-AI-Era", {
+                            x: 8, y: 5.2, fontSize: 10, color: "555555"
+                        });
+                    };
+
+                    // --- SLIDE 2: Sales Trend ---
+                    await addChartSlide("Sales Trend Analysis", "sales-trend");
+
+                    // --- SLIDE 3: Profit Trend ---
+                    await addChartSlide("Profitability Timeline", "profit-trend");
+
+                    // --- SLIDE 4: Correlations ---
+                    await addChartSlide("Sales vs Profit Correlation", "overlay-plot");
+
+                    // --- SLIDE 5: Clustering ---
+                    await addChartSlide("Cluster Analysis", "scatter-plot");
+
+                    // --- Save File ---
+                    await pres.writeFile({ fileName: "Morph-AI-Report.pptx" });
+
+                    btn.innerHTML = originalText;
+                    // logHistory("Export PPT", "Generated PowerPoint Presentation");
+
+                } catch (error) {
+                    console.error(error);
+                    alert("Error generating PowerPoint: " + error.message);
+                    btn.innerHTML = originalText;
+                }
+            });
 
             // --- FIXED FULL-SCREEN PDF DOWNLOADER (Safe Credits) ---
             document.getElementById('btn-download-pdf').addEventListener('click', async function () {
