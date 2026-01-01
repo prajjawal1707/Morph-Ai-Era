@@ -176,6 +176,11 @@ class OrderRequest(BaseModel):
 
 @app.post("/api/create_order")
 async def create_order(request: OrderRequest, current_user: dict = Depends(get_current_user)):
+    if not current_user:
+        raise HTTPException(
+            status_code=401, 
+            detail="User profile missing. Please log out and log in again."
+        )
     try:
         # 1. Security Check
         allowed_prices = [1, 49, 199, 999] 
@@ -200,7 +205,7 @@ async def create_order(request: OrderRequest, current_user: dict = Depends(get_c
         print(f"Error creating order: {e}")
         raise HTTPException(status_code=500, detail=str(e))
     
-@app.post("/verify_payment") # Note: Changed from verify-payment to verify_payment
+@app.post("/api/verify_payment") # Note: Changed from verify-payment to verify_payment
 async def verify_payment(data: PaymentVerification):
     try:
         # 1. Verify Signature
