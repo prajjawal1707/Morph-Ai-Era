@@ -190,74 +190,6 @@ async def update_profile(
 EDU_DOMAINS = ["du.ac.in", "iitm.ac.in", "smail.iitm.ac.in", "morph-ai.com"]
 
 # --- REPLACE THE CALLBACK FUNCTION ---
-# @router.post("/auth/google/callback")
-# async def google_auth_callback(request: Request):
-#     form_data = await request.form()
-#     credential = form_data.get('credential')
-    
-#     if not credential:
-#         raise HTTPException(status_code=400, detail="No credential provided")
-    
-#     try:
-#         # 1. Sign in with Google
-#         auth_response = supabase.auth.sign_in_with_id_token({
-#             "provider": "google",
-#             "token": credential
-#         })        
-        
-#         if not auth_response.session:
-#             raise Exception("Google Sign-In failed with Supabase.")
-        
-#         user = auth_response.user
-        
-#         # 2. CHECK PROFILE & DETERMINE FLOW
-#         try:
-#             profile_response = supabase.table('users').select("*").eq('id', user.id).execute()
-            
-#             # IF NEW USER (Profile missing)
-#             if not profile_response.data:
-#                 print(f"New Google User detected: {user.email}")
-                
-#                 # A. Check if Enterprise Domain
-#                 domain = user.email.split('@')[-1].lower()
-#                 is_enterprise = any(domain.endswith(edu) for edu in EDU_DOMAINS)
-                
-#                 initial_credits = 10     # Default for normal users
-#                 redirect_url = "/dashboard" # Normal users go straight to dashboard
-                
-#                 # B. Enterprise Rule: 0 Credits until they pay ₹1
-#                 if is_enterprise:
-#                     print(f"Enterprise User Detected ({user.email}). Redirecting to payment.")
-#                     initial_credits = 0
-#                     redirect_url = "/dashboard?action=verify_enterprise" 
-
-#                 # C. Create Profile
-#                 raw_username = user.user_metadata.get('full_name') or user.email.split('@')[0]
-#                 new_profile = {
-#                     "id": user.id,
-#                     "email": user.email,
-#                     "username": raw_username,
-#                     "graph_credits": initial_credits
-#                 }
-                
-#                 supabase.table('users').insert(new_profile).execute()
-                
-#         except Exception as db_error:
-#             print(f"Warning: Profile Sync Failed: {db_error}")
-
-#         # 3. Success - Log them in and Redirect
-#         access_token = auth_response.session.access_token
-#         response = RedirectResponse(url=redirect_url, status_code=303)
-#         response.set_cookie(key="access_token", value=f"Bearer {access_token}", httponly=True, samesite="lax")
-#         return response
-
-#     except Exception as e:
-#         print(f"Google Sign-In Critical Error: {e}")
-#         return RedirectResponse(url="/login?error=Google+sign-in+failed", status_code=303)
-
-
-
-
 @router.post("/auth/google/callback")
 async def google_auth_callback(request: Request):
     form_data = await request.form()
@@ -267,7 +199,7 @@ async def google_auth_callback(request: Request):
         raise HTTPException(status_code=400, detail="No credential provided")
     
     try:
-        # 1. Sign in with Google (Auth Layer)
+        # 1. Sign in with Google
         auth_response = supabase.auth.sign_in_with_id_token({
             "provider": "google",
             "token": credential
@@ -278,43 +210,111 @@ async def google_auth_callback(request: Request):
         
         user = auth_response.user
         
-        # 2. CHECK: Does the profile exist in the public 'users' table?
+        # 2. CHECK PROFILE & DETERMINE FLOW
         try:
             profile_response = supabase.table('users').select("*").eq('id', user.id).execute()
             
-            # 3. HANDLE MISSING PROFILE (This is a New User)
+            # IF NEW USER (Profile missing)
             if not profile_response.data:
-                print(f"New Google User detected (No Profile): {user.email}")
+                print(f"New Google User detected: {user.email}")
                 
-                # Get username from metadata or fallback to email
-                raw_username = user.user_metadata.get('full_name') or user.user_metadata.get('name')
-                if not raw_username:
-                    raw_username = user.email.split('@')[0]
+                # A. Check if Enterprise Domain
+                domain = user.email.split('@')[-1].lower()
+                is_enterprise = any(domain.endswith(edu) for edu in EDU_DOMAINS)
                 
-                # Create the profile MANUALLY with 10 Credits
+                initial_credits = 10     # Default for normal users
+                redirect_url = "/dashboard" # Normal users go straight to dashboard
+                
+                # B. Enterprise Rule: 0 Credits until they pay ₹1
+                if is_enterprise:
+                    print(f"Enterprise User Detected ({user.email}). Redirecting to payment.")
+                    initial_credits = 0
+                    redirect_url = "/dashboard?action=verify_enterprise" 
+
+                # C. Create Profile
+                raw_username = user.user_metadata.get('full_name') or user.email.split('@')[0]
                 new_profile = {
                     "id": user.id,
                     "email": user.email,
                     "username": raw_username,
-                    "graph_credits": 10  # <--- GIVING THE FREE CREDITS HERE
+                    "graph_credits": initial_credits
                 }
                 
                 supabase.table('users').insert(new_profile).execute()
-                print("Profile created successfully with 10 credits.")
                 
         except Exception as db_error:
-            # If this fails, we log it but still allow login (Safety Net)
             print(f"Warning: Profile Sync Failed: {db_error}")
 
-        # 4. Success - Log them in
+        # 3. Success - Log them in and Redirect
         access_token = auth_response.session.access_token
-        response = RedirectResponse(url="/dashboard", status_code=303)
+        response = RedirectResponse(url=redirect_url, status_code=303)
         response.set_cookie(key="access_token", value=f"Bearer {access_token}", httponly=True, samesite="lax")
         return response
 
     except Exception as e:
         print(f"Google Sign-In Critical Error: {e}")
         return RedirectResponse(url="/login?error=Google+sign-in+failed", status_code=303)
+
+
+
+
+# @router.post("/auth/google/callback")
+# async def google_auth_callback(request: Request):
+#     form_data = await request.form()
+#     credential = form_data.get('credential')
+    
+#     if not credential:
+#         raise HTTPException(status_code=400, detail="No credential provided")
+    
+#     try:
+#         # 1. Sign in with Google (Auth Layer)
+#         auth_response = supabase.auth.sign_in_with_id_token({
+#             "provider": "google",
+#             "token": credential
+#         })        
+        
+#         if not auth_response.session:
+#             raise Exception("Google Sign-In failed with Supabase.")
+        
+#         user = auth_response.user
+        
+#         # 2. CHECK: Does the profile exist in the public 'users' table?
+#         try:
+#             profile_response = supabase.table('users').select("*").eq('id', user.id).execute()
+            
+#             # 3. HANDLE MISSING PROFILE (This is a New User)
+#             if not profile_response.data:
+#                 print(f"New Google User detected (No Profile): {user.email}")
+                
+#                 # Get username from metadata or fallback to email
+#                 raw_username = user.user_metadata.get('full_name') or user.user_metadata.get('name')
+#                 if not raw_username:
+#                     raw_username = user.email.split('@')[0]
+                
+#                 # Create the profile MANUALLY with 10 Credits
+#                 new_profile = {
+#                     "id": user.id,
+#                     "email": user.email,
+#                     "username": raw_username,
+#                     "graph_credits": 10  # <--- GIVING THE FREE CREDITS HERE
+#                 }
+                
+#                 supabase.table('users').insert(new_profile).execute()
+#                 print("Profile created successfully with 10 credits.")
+                
+#         except Exception as db_error:
+#             # If this fails, we log it but still allow login (Safety Net)
+#             print(f"Warning: Profile Sync Failed: {db_error}")
+
+#         # 4. Success - Log them in
+#         access_token = auth_response.session.access_token
+#         response = RedirectResponse(url="/dashboard", status_code=303)
+#         response.set_cookie(key="access_token", value=f"Bearer {access_token}", httponly=True, samesite="lax")
+#         return response
+
+#     except Exception as e:
+#         print(f"Google Sign-In Critical Error: {e}")
+#         return RedirectResponse(url="/login?error=Google+sign-in+failed", status_code=303)
 
 
 

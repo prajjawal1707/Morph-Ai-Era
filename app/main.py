@@ -218,7 +218,9 @@ async def verify_payment(data: PaymentVerification):
 
         # 3. Determine Credits based on Price
         credits_to_add = 0
-        if amount_paid == 49:
+        if amount_paid == 1:          # <--- ENTERPRISE LOGIC ADDED
+            credits_to_add = 50000
+        elif amount_paid == 49:
             credits_to_add = 20
         elif amount_paid == 199:
             credits_to_add = 200
