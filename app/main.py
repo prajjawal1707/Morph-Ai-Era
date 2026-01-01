@@ -6,6 +6,7 @@ from fastapi.responses import JSONResponse, HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.templating import Jinja2Templates
 import pandas as pd
+import numpy as np
 from fastapi import Depends
 from fastapi.responses import RedirectResponse
 from app.api.auth import get_current_user # This imports your security guard
@@ -329,23 +330,144 @@ async def process_file(
         elif file.filename.endswith('.csv'):
             # Try different encodings to avoid errors
             try:
-                df = pd.read_csv(file_bytes, encoding='utf-8')
+                # Read without header to look at raw data
+                df_temp = pd.read_csv(file_bytes, header=None, encoding='utf-8')
             except UnicodeDecodeError:
                 file_bytes.seek(0)
-                df = pd.read_csv(file_bytes, encoding='ISO-8859-1')
-        
+                df_temp = pd.read_csv(file_bytes, header=None, encoding='ISO-8859-1')
+            max_non_nulls = 0
+            header_row_index = 0
+            
+            for i in range(min(50, len(df_temp))):
+                non_null_count = df_temp.iloc[i].count()
+                if non_null_count > max_non_nulls:
+                    max_non_nulls = non_null_count
+                    header_row_index = i
+            
+            # 2. Reload the CSV using the detected header
+            file_bytes.seek(0) # Reset pointer
+            try:
+                df = pd.read_csv(file_bytes, header=header_row_index, encoding='utf-8')
+            except UnicodeDecodeError:
+                file_bytes.seek(0)
+                df = pd.read_csv(file_bytes, header=header_row_index, encoding='ISO-8859-1')
+
         else:
             return JSONResponse(status_code=400, content={"detail": "Invalid file type. Please upload CSV or Excel."})
 
-        # 3. Success: Process Data
-        # Replace NaN with None (null in JSON) and infinite with 0
-        df = df.where(pd.notnull(df), None)
+       
+
+        if df is None:
+            return JSONResponse(status_code=400, content={"detail": "Invalid file."})
+
+        # --- 3. JSON SAFETY BLOCK (THE FIX) ---
+        # This prevents the "500 Internal Server Error"
         
+        # A. Remove columns that are 100% empty (Safe cleanup)
+        df = df.dropna(axis=1, how='all')
+
+        # B. Replace Infinity with 0
+        df = df.replace([np.inf, -np.inf], 0)
+
+        # C. Replace NaN with None (This is what JSON needs)
+        # We assume Object type to allow None values in numeric columns
+        df = df.astype(object)
+        df = df.where(pd.notnull(df), None)
+
         return {
             "status": "success",
             "headers": df.columns.tolist(),
             "data": df.to_dict(orient='records')
         }
-
     except Exception as e:
-        return JSONResponse(status_code=500, content={"detail": f"Error parsing file: {str(e)}"})
+        print(f"Upload Error: {e}")
+        return JSONResponse(status_code=500, content={"detail": str(e)})
+    # --- ADD THIS TO main.py ---
+
+
+
+def perform_cleaning(df):
+    """
+    Smart Cleaning with Correct "Rows Removed" Count.
+    1. Finds & Promotes Header (Does not count this as 'removed').
+    2. Deletes ONLY true junk rows.
+    """
+    initial_rows = len(df)
+    header_fixed = False # Flag to track if we moved a header
+
+    # --- 1. SMART HEADER DETECTION ---
+    first_col = str(df.columns[0])
+    if first_col.startswith('Unnamed') or "Sample" in first_col or "Data" in first_col:
+        
+        best_row_index = -1
+        max_score = 0
+        keywords = ['id', 'name', 'date', 'price', 'cost', 'stock', 'sku', 'total', 'sales', 'profit', 'category']
+        
+        for i in range(min(20, len(df))):
+            row = df.iloc[i]
+            row_str = str(row.tolist()).lower()
+            text_count = sum(1 for val in row if isinstance(val, str) and len(str(val).strip()) > 0)
+            keyword_bonus = sum(5 for k in keywords if k in row_str)
+            
+            if (text_count + keyword_bonus) > max_score:
+                max_score = text_count + keyword_bonus
+                best_row_index = i
+        
+        # Promote the winner row to Header
+        if best_row_index != -1 and max_score > 2:
+            new_header = df.iloc[best_row_index]
+            df = df.iloc[best_row_index + 1:] 
+            
+            cleaned_columns = []
+            for i, val in enumerate(new_header):
+                if pd.isna(val) or str(val).strip() == "":
+                    cleaned_columns.append(f"Column_{i+1}")
+                else:
+                    cleaned_columns.append(str(val).strip())
+            df.columns = cleaned_columns
+            df = df.reset_index(drop=True)
+            header_fixed = True # We moved a row to header!
+
+    # --- 2. SAFE CLEANING ---
+    # Remove "Unnamed" columns only if safe
+    valid_cols = [c for c in df.columns if not str(c).startswith('Unnamed') and not str(c).startswith('Column_')]
+    if len(valid_cols) > 0:
+        df = df[valid_cols]
+
+    # Drop Duplicates & Empty Rows
+    df = df.drop_duplicates()
+    df = df.dropna(how='all') 
+    
+    # JSON Safety
+    df = df.fillna("") 
+    df = df.replace([np.inf, -np.inf], 0)
+
+    # --- 3. CALCULATE "TRUE" REMOVED ROWS ---
+    final_rows = len(df)
+    rows_removed = initial_rows - final_rows
+    
+    # FIX: If we promoted a header, don't count it as "Removed data"
+    if header_fixed:
+        rows_removed -= 1
+        
+    # Ensure we never show negative numbers
+    rows_removed = max(0, rows_removed)
+    
+    return df, rows_removed
+@app.post("/api/clean-data")
+async def clean_data_endpoint(request: Request):
+    try:
+        data = await request.json()
+        df = pd.DataFrame(data['rows'])
+        
+        cleaned_df, rows_removed = perform_cleaning(df)
+        
+        return {
+            "status": "success",
+            "rows_removed": rows_removed,
+            "headers": cleaned_df.columns.tolist(), # <--- ADD THIS LINE !!!
+            "data": cleaned_df.to_dict(orient='records')
+        }
+    except Exception as e:
+        print(f"Clean Error: {e}")
+        return JSONResponse(status_code=500, content={"detail": str(e)})

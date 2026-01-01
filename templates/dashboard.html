@@ -707,18 +707,169 @@
             border-color: #1E90FF;
         }
 
-        /* Add this to your style section */
-        #btnHealth,
-        #btnForecast {
-            opacity: 0.7;
-            /* Looks inactive initially */
-            transition: opacity 0.3s;
+        /* --- 1. FILE UPLOAD (Cyan Glow) --- */
+        .file-label {
+            background: transparent;
+            border: 1px solid #00bcd4;
+            /* Cyan */
+            color: #00bcd4;
+            border-radius: 10px;
+            height: 36px;
+            padding: 0 14px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s ease;
+            opacity: 0.8;
         }
 
-        #btnHealth:hover,
-        #btnForecast:hover {
+        .file-label:hover {
             opacity: 1;
-            /* Brightens when hovered */
+            background: rgba(0, 188, 212, 0.15);
+            box-shadow: 0 0 12px rgba(0, 188, 212, 0.4);
+            transform: translateY(-1px);
+        }
+
+        /* =========================================
+   1. UNIFIED UPLOAD BOX ( The "Hero" Element )
+   ========================================= */
+        .upload-box {
+            display: inline-flex;
+            align-items: center;
+            /* Brighter default border to grab attention */
+            border: 1px solid #00bcd4;
+            /* Subtle pulsing background to say "Click Me" */
+            background: rgba(0, 188, 212, 0.08);
+            border-radius: 10px;
+            padding: 0 14px;
+            height: 38px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(0, 188, 212, 0.1);
+            /* Soft glow */
+        }
+
+        /* Hover: Becomes very bright */
+        .upload-box:hover {
+            background: rgba(0, 188, 212, 0.15);
+            box-shadow: 0 0 15px rgba(0, 188, 212, 0.3);
+            transform: translateY(-1px);
+        }
+
+        /* The "Upload" Label */
+        .upload-box .box-label {
+            font-size: 11px;
+            text-transform: uppercase;
+            color: #6c757d;
+            font-weight: 700;
+            margin-right: 12px;
+            padding-right: 12px;
+            border-right: 1px solid rgba(0, 188, 212, 0.3);
+            height: 20px;
+            display: flex;
+            align-items: center;
+        }
+
+        /* The Action Text */
+        .upload-box .file-label-text {
+            color: #00bcd4;
+            /* Bright Cyan */
+            font-size: 14px;
+            font-weight: 700;
+            /* Bold text to stand out */
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+
+
+        #load-view {
+            background: transparent;
+            border: 1px solid #5c6bc0;
+            /* Indigo */
+            color: #7986cb;
+            border-radius: 10px;
+            height: 36px;
+            padding: 0 30px 0 12px;
+            /* Extra padding for arrow */
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            outline: none;
+            appearance: none;
+            /* Remove default arrow */
+
+            /* Custom Arrow Icon (SVG encoded) */
+            background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%235c6bc0%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
+            background-repeat: no-repeat;
+            background-position: right 10px center;
+            background-size: 10px;
+            transition: all 0.3s ease;
+        }
+
+        #load-view:hover,
+        #load-view:focus {
+            border-color: #7986cb;
+            background-color: rgba(92, 107, 192, 0.1);
+            box-shadow: 0 0 10px rgba(92, 107, 192, 0.3);
+        }
+
+        /* The Save Button */
+        #save-view {
+            background: transparent;
+            border: 1px solid #5c6bc0;
+            color: #5c6bc0;
+            border-radius: 10px;
+            height: 36px;
+            padding: 0 14px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-left: 8px;
+        }
+
+        #save-view:hover {
+            background: rgba(92, 107, 192, 0.15);
+            box-shadow: 0 0 12px rgba(92, 107, 192, 0.4);
+            transform: translateY(-1px);
+            color: #fff;
+        }
+
+        /* --- 3. RUNNING TOTAL (Pink Glow) --- */
+        #calc-running-total {
+            background: transparent;
+            border: 1px solid #e91e63;
+            /* Pink */
+            color: #e91e63;
+            border-radius: 10px;
+            height: 36px;
+            padding: 0 14px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        #calc-running-total:hover {
+            background: rgba(233, 30, 99, 0.15);
+            box-shadow: 0 0 12px rgba(233, 30, 99, 0.4);
+            transform: translateY(-1px);
+        }
+
+        /* --- 4. Label Text (e.g. "Upload", "Views") --- */
+        .group .label {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #6c757d;
+            /* Muted Grey */
+            margin-right: 8px;
+            font-weight: 700;
         }
 
         /* Sheet Selector Modal Styles */
@@ -744,6 +895,112 @@
 
 
 
+
+        /* =========================================
+   AI TOOLS BUTTONS (Glow & Brightness)
+   ========================================= */
+
+        /* --- 1. Shared Base Styles --- */
+        #btnHealth,
+        #btnClean,
+        #btnForecast {
+            background: transparent;
+            border-radius: 10px;
+            height: 36px;
+            padding: 0 12px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            opacity: 0.7;
+            /* Starts slightly dimmed */
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            border-width: 1px;
+            border-style: solid;
+        }
+
+        /* --- 2. Shared Hover Animation --- */
+        #btnHealth:hover,
+        #btnClean:hover,
+        #btnForecast:hover {
+            opacity: 1;
+            /* Fully bright on hover */
+            transform: translateY(-1px);
+            /* Slight lift */
+        }
+
+        /* --- 3. Specific Colors & Glows --- */
+
+        /* GREEN: Check Health */
+        #btnHealth {
+            border-color: #00e676;
+            color: #00e676;
+        }
+
+        #btnHealth:hover {
+            background: rgba(0, 230, 118, 0.15);
+            /* Green Tint */
+            box-shadow: 0 0 12px rgba(0, 230, 118, 0.4);
+            /* Green Glow */
+        }
+
+        /* ORANGE: Clean Data */
+        #btnClean {
+            border-color: #f59e0b;
+            color: #f59e0b;
+        }
+
+        #btnClean:hover {
+            background: rgba(245, 158, 11, 0.15);
+            /* Orange Tint */
+            box-shadow: 0 0 12px rgba(245, 158, 11, 0.4);
+            /* Orange Glow */
+        }
+
+        /* PURPLE: Forecast Growth */
+        #btnForecast {
+            border-color: #a55eea;
+            color: #a55eea;
+        }
+
+        #btnForecast:hover {
+            background: rgba(165, 94, 234, 0.15);
+            /* Purple Tint */
+            box-shadow: 0 0 12px rgba(165, 94, 234, 0.4);
+            /* Purple Glow */
+        }
+
+        /* --- 4. Disabled State (When Loading) --- */
+        #btnHealth:disabled,
+        #btnClean:disabled,
+        #btnForecast:disabled {
+            border-color: #444;
+            color: #666;
+            cursor: not-allowed;
+            background: transparent;
+            box-shadow: none;
+            transform: none;
+            opacity: 0.5;
+        }
+
+        /* --- 5. Modal Clean Button (Solid) --- */
+        #modalBtnClean {
+            background: #f59e0b;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background 0.2s;
+        }
+
+        #modalBtnClean:hover {
+            background: #d97706;
+            /* Darker orange */
+        }
 
         /* Animations */
         @keyframes popUp {
@@ -855,17 +1112,31 @@
                 </div>
             </section>
             <section class="bar">
-                <div class="group"><span class="label">Upload</span><label for="fileInput" class="file-label"><i
+                <!-- <div class="group"><span class="label">Upload</span><label for="fileInput" class="file-label"><i
                             class="fa-solid fa-file-arrow-up"></i> File</label><input id="fileInput" type="file"
-                        accept=".csv, .xlsx, .xls, .json" /></div>
-                <div class="group"><span class="label">Views</span><select id="load-view" class="select">
-                        <option value="">Load View</option>
-                    </select><button id="save-view" class="btn">Save View</button></div>
+                        accept=".csv, .xlsx, .xls, .json" /></div> -->
 
-                <!-- <div style="flex:1"></div>
-                <div class="group" id="filter-status" style="display:none;"><span class="label">Filters
-                        Active!</span><button id="clear-filters" class="btn">Clear Filters</button></div> -->
-                <div class="group"><button id="calc-running-total" class="btn">Running Total</button></div>
+                <div class="group">
+                    <span class="label">Upload</span>
+                    <label for="fileInput" class="file-label">
+                        <i class="fa-solid fa-file-arrow-up"></i> Select File
+                    </label>
+                    <input id="fileInput" type="file" accept=".csv, .xlsx, .xls, .json" />
+                </div>
+                <div class="group">
+                    <span class="label">Views</span>
+                    <select id="load-view">
+                        <option value="">Load View</option>
+                    </select>
+                    <button id="save-view">Save</button>
+                </div>
+
+                <div class="group">
+                    <button id="calc-running-total">
+                        <i class="fa-solid fa-arrow-trend-up"></i> Running Total
+                    </button>
+                </div>
+                <!-- <div class="group"><button id="calc-running-total" class="btn">Running Total</button></div> -->
                 <div class="group">
                     <button id="btnUpdate" class="btn primary"><i class="fa-solid fa-rotate"></i>&nbsp;Update
                         Chart</button>
@@ -884,12 +1155,16 @@
                 <div class="group"
                     style="margin-top: 5px; padding-top: 10px; border-top: 1px solid #2d3a54; width: 100%;">
                     <span class="label" style="color: #00e676; font-weight: bold;">AI Tools:</span>
-                    <button id="btnHealth" class="btn"
-                        style="border: 1px solid #00e676; color: #00e676; background: transparent;">
+
+                    <button id="btnHealth" class="btn">
                         <i class="fa-solid fa-heart-pulse"></i> Check Health
                     </button>
-                    <button id="btnForecast" class="btn"
-                        style="border: 1px solid #a55eea; color: #a55eea; background: transparent;">
+
+                    <button id="btnClean" class="btn" onclick="triggerClean()">
+                        <i class="fa-solid fa-broom"></i> Clean Data
+                    </button>
+
+                    <button id="btnForecast" class="btn">
                         <i class="fa-solid fa-wand-magic-sparkles"></i> Forecast Growth
                     </button>
                 </div>
@@ -898,6 +1173,10 @@
             <section class="card panel" style="padding:14px;">
                 <div class="head">
                     <span>Interactive Chart</span>
+                    <button class="icon-btn" onclick="downloadSingleGraph('sales-trend', 'Sales_Trend_Graph')"
+                        title="Download Image">
+                        <i class="fa-solid fa-download"></i>
+                    </button>
                     <div class="controls">
                         <select id="u-type" class="select">
                             <optgroup label="Bar & Column">
@@ -2514,7 +2793,7 @@
                 // --- GUARD CLAUSE: STOP HERE IF NO DATA ---
                 // This fixes the bug. If no data is uploaded, we stop immediately.
                 if (!DATASET || DATASET.length === 0) {
-                    alert("⚠️ Please upload a file first to check data health.");
+                    alert("Please upload a file first to check data health.");
                     return; // STOP. Do not check credits. Do not call backend.
                 }
 
@@ -2626,12 +2905,83 @@ ${result.score > 80 ? "Data is good for Forecasting." : "We recommend cleaning e
 
         })();
 
+        // ==========================================
+        // 🧹 CLEAN DATA MODULE (PERMANENT BUTTON VERSION)
+        // ==========================================
+        // 1. The Main Cleaning Function
+        async function triggerClean() {
+            // A. Confirmation Dialog
+            if (!confirm("This will remove duplicate rows and empty rows to improve your score. Continue?")) {
+                return;
+            }
+
+            // B. Close the Health Modal (if it is open)
+            const healthModal = document.getElementById('healthModal');
+            if (healthModal) healthModal.style.display = 'none';
+
+            // C. Show Loading State on the Button
+            const btnClean = document.getElementById('btnClean');
+            if (btnClean) {
+                const originalText = btnClean.innerHTML;
+                btnClean.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Cleaning...';
+                btnClean.disabled = true;
+            }
+
+            try {
+                // D. Call the Python Backend
+                const response = await fetch('/api/clean-data', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ rows: DATASET })
+                });
+
+                const result = await response.json();
+
+                if (result.status === 'success') {
+                    // E. Success! Update the Global Dataset
+                    DATASET = result.data;
+                    if (result.headers) {
+                        HEADERS = result.headers;
+                        localStorage.setItem('dashboardData', JSON.stringify({ headers: HEADERS, data: DATASET }));
+                    }
+
+                    // F. Refresh the Table (if you have a table)
+                    if (typeof renderTable === 'function') {
+                        renderTable(DATASET);
+                    }
+
+                    // --- G. REFRESH ALL CHARTS (The Fix) ---
+                    if (typeof refreshAll === 'function') {
+                        refreshAll(); // <--- THIS UPDATES THE GRAPHS
+                    }
+
+                    // H. Show Success Message
+                    alert(`✅ Data Cleaned Successfully!\n\n🗑️ Removed ${result.rows_removed} bad rows.\n✨ New Health Score: 100/100`);
+
+                } else {
+                    alert("Error from server: " + (result.detail || "Unknown error"));
+                }
+
+            } catch (e) {
+                console.error("Cleaning Error:", e);
+                alert("Failed to clean data. Check console for details.");
+            } finally {
+                // I. Reset Button State
+                if (btnClean) {
+                    btnClean.innerHTML = '<i class="fa-solid fa-broom"></i> Clean Data';
+                    btnClean.disabled = false;
+                }
+            }
+        }
+
+
+
 
         // --- 2. AI FORECAST LOGIC (Gap Fix) ---
         document.getElementById('btnForecast').addEventListener('click', async () => {
             // 1. check file
             if (!DATASET || DATASET.length === 0) {
-                alert("Please upload a CSV file first to generate a forecast.");
+                alert("Please upload a file first to generate a forecast.");
                 return; // Stop here. No credit lost.
             }
 
@@ -2810,6 +3160,31 @@ ${result.score > 80 ? "Data is good for Forecasting." : "We recommend cleaning e
                         Pro</button>
                 </div>
 
+            </div>
+        </div>
+    </div>
+
+    <div id="healthModal"
+        style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 1000;">
+        <div
+            style="background: white; padding: 30px; border-radius: 12px; width: 400px; text-align: center; box-shadow: 0 4px 20px rgba(0,0,0,0.2);">
+            <div id="modalIcon" style="font-size: 40px; margin-bottom: 10px;"></div>
+            <h2 id="modalTitle" style="margin: 0 0 10px 0; color: #333;">Data Health Report</h2>
+            <p id="modalScore" style="font-size: 24px; font-weight: bold; margin: 10px 0;"></p>
+
+            <div id="modalIssues"
+                style="text-align: left; background: #f9fafb; padding: 15px; border-radius: 8px; margin: 15px 0; font-size: 14px; color: #555;">
+            </div>
+
+            <div style="display: flex; gap: 10px; justify-content: center; margin-top: 20px;">
+                <button id="modalBtnClean" onclick="triggerClean()"
+                    style="background: #f59e0b; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer;">
+                    <i class="fa-solid fa-broom"></i> Clean Now
+                </button>
+                <button onclick="closeModal()"
+                    style="background: #e5e7eb; color: #374151; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer;">
+                    Close
+                </button>
             </div>
         </div>
     </div>
