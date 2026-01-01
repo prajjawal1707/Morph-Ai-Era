@@ -2239,6 +2239,43 @@
 
         // --- INITIALIZATION ON LOAD ---
         window.addEventListener('DOMContentLoaded', async () => {
+
+            // 1. Load User & Credits 
+            // (We use updateAuthStatus because your code defines that function)
+            await updateAuthStatus();
+
+            // 2. ENTERPRISE VERIFICATION CHECK
+            const urlParams = new URLSearchParams(window.location.search);
+
+            if (urlParams.get('action') === 'verify_enterprise') {
+                // A. Clean URL
+                window.history.replaceState({}, document.title, "/dashboard");
+
+                // B. Trigger Alert & Popup
+                setTimeout(() => {
+                    alert("🎓 Enterprise Account Detected!\n\nTo activate your 50,000 Free Credits, please verify you are a real user by paying ₹1.");
+
+                    // C. Trigger Payment (USING YOUR EXISTING FUNCTION NAME)
+                    openPaymentPopup(1);
+                }, 1000);
+            }
+
+            // 3. Update UI
+            updateCreditDisplay();
+
+            // 4. Restore Dashboard Data
+            if (localStorage.getItem('dashboardData')) {
+                const saved = JSON.parse(localStorage.getItem('dashboardData'));
+                if (saved.data && saved.headers) {
+                    DATASET = saved.data;
+                    HEADERS = saved.headers;
+                    refreshAll();
+                }
+            }
+        });
+
+        // --- INITIALIZATION ON LOAD ---
+        window.addEventListener('DOMContentLoaded', async () => {
             await checkUserSession(); // See if user is logged in
 
             if (CURRENT_USER) {
@@ -2262,20 +2299,23 @@
             //Code for enterprise model for students
             // --- ADD THIS INSIDE DOMContentLoaded ---
             // Check for Enterprise Verification URL
-            const urlParams = new URLSearchParams(window.location.search);
+            // const urlParams = new URLSearchParams(window.location.search);
 
-            if (urlParams.get('action') === 'verify_enterprise') {
-                // 1. Clean URL (Hide the action param)
-                window.history.replaceState({}, document.title, "/dashboard");
+            // if (urlParams.get('action') === 'verify_enterprise') {
+            //     // 1. Clean URL (Hide the action param)
+            //     window.history.replaceState({}, document.title, "/dashboard");
 
-                // 2. Alert User & Trigger Payment
-                setTimeout(() => {
-                    alert("🎓 Enterprise Account Detected!\n\nTo activate your 50,000 Free Credits, we need to verify you are a real user.\n\nPlease complete the ₹1 verification payment.");
+            //     // 2. Alert User & Trigger Payment
+            //     setTimeout(() => {
+            //         alert("🎓 Enterprise Account Detected!\n\nTo activate your 50,000 Free Credits, we need to verify you are a real user.\n\nPlease complete the ₹1 verification payment.");
 
-                    // 3. Force Payment Popup (Price = 1)
-                    initiatePayment(1);
-                }, 500);
-            }
+            //         // 3. Force Payment Popup (Price = 1)
+            //         openPaymentPopup(1);
+            //     }, 500);
+            // }
+
+
+
 
 
 
