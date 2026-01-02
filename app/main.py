@@ -209,6 +209,9 @@ async def create_order(request: OrderRequest, current_user: dict = Depends(get_c
         print(f"Error creating order: {e}")
         raise HTTPException(status_code=500, detail=str(e))
     
+# Ensure these imports are at the top of your file
+from datetime import datetime, timedelta, timezone
+
 @app.post("/api/verify_payment")
 async def verify_payment(data: PaymentVerification):
     try:
@@ -239,11 +242,12 @@ async def verify_payment(data: PaymentVerification):
         elif amount_paid == 999:
             credits_to_add = 1500
         
-        # --- FIX 1: Initialize new_balance to prevent 500 Error ---
-        new_balance = 0
-        # ----------------------------------------------------------
+        # --- PREVENT CRASH: Initialize variable ---
+        new_balance = 0 
+        # ------------------------------------------
 
         # 4. Update Main User Credits
+        # NOTE: Ensure 'supabase' client is initialized at the top of main.py
         response = supabase.table("users").select("graph_credits, email").eq("id", user_id).execute()
         
         if response.data:
@@ -257,6 +261,7 @@ async def verify_payment(data: PaymentVerification):
             # 5. Log to 'enterprise_subscriptions' Table
             if is_enterprise_verification:
                 try:
+                    # Calculate Expiry
                     current_time = datetime.now(timezone.utc)
                     end_date = current_time + timedelta(days=90)
 
@@ -267,19 +272,20 @@ async def verify_payment(data: PaymentVerification):
                         "plan_type": "student_quarterly"
                     }
                     
-                    # Use upsert to handle re-payments gracefully
+                    # Upsert to separate table (Ensure RLS is disabled on this table!)
                     supabase.table("enterprise_subscriptions").upsert(subscription_data).execute()
                     print(f"Enterprise subscription activated for {user_id}")
                     
                 except Exception as log_error:
                     print(f"Enterprise Log Error: {log_error}")
         else:
-            print(f"CRITICAL: User {user_id} paid but has no profile. Cannot add credits.")
+            print(f"CRITICAL WARNING: User {user_id} paid but has no profile row.")
 
         return {"status": "success", "new_balance": new_balance, "added": credits_to_add}
 
     except Exception as e:
         print(f"Payment Verification Failed: {e}")
+        # Return a 500 error with details to help debugging
         raise HTTPException(status_code=500, detail=f"Verification Error: {str(e)}")
     
 # @app.post("/api/verify_payment") # Note: Changed from verify-payment to verify_payment
