@@ -205,7 +205,7 @@ async def create_order(request: OrderRequest, current_user: dict = Depends(get_c
         print(f"Error creating order: {e}")
         raise HTTPException(status_code=500, detail=str(e))
     
-@app.post("/api/verify_payment") # Note: Changed from verify-payment to verify_payment
+@app.post("/api/verify_payment")
 async def verify_payment(data: PaymentVerification):
     try:
         # 1. Verify Signature
@@ -216,15 +216,19 @@ async def verify_payment(data: PaymentVerification):
         }
         client.utility.verify_payment_signature(params_dict)
 
-        # 2. Fetch Order Details to confirm amount
+        # 2. Fetch Order Details
         order_info = client.order.fetch(data.razorpay_order_id)
-        amount_paid = order_info['amount'] / 100  # Convert paise back to Rupees
+        amount_paid = order_info['amount'] / 100 
         user_id = order_info['notes']['user_id']
 
-        # 3. Determine Credits based on Price
+        # 3. Determine Credits & Type
         credits_to_add = 0
-        if amount_paid == 1:          # <--- ENTERPRISE LOGIC ADDED
+        is_enterprise_verification = False
+
+        if amount_paid == 1:
+            # --- ENTERPRISE LOGIC ---
             credits_to_add = 50000
+            is_enterprise_verification = True
         elif amount_paid == 49:
             credits_to_add = 20
         elif amount_paid == 199:
@@ -232,29 +236,98 @@ async def verify_payment(data: PaymentVerification):
         elif amount_paid == 999:
             credits_to_add = 1500
         
-        # 4. Update Database (Supabase)
-        # Fetch current credits first
-        response = supabase.table("users").select("credits").eq("id", user_id).execute()
+        # 4. Update Main User Credits
+        response = supabase.table("users").select("graph_credits, email").eq("id", user_id).execute()
         
-        # Handle case where user might not have a credit entry yet
         if response.data:
-            current_credits = response.data[0]['credits'] or 0
+            user_data = response.data[0]
+            current_credits = user_data.get('graph_credits') or 0
             new_balance = current_credits + credits_to_add
             
-            # Push new balance to DB
-            supabase.table("users").update({"credits": new_balance}).eq("id", user_id).execute()
-        else:
-            # Fallback (should typically not happen for logged in users)
-            print(f"User {user_id} not found in DB during credit update.")
+            # Update balance
+            supabase.table("users").update({"graph_credits": new_balance}).eq("id", user_id).execute()
+
+            # 5. Log to 'enterprise_subscriptions' Table
+            if is_enterprise_verification:
+                try:
+                    # Calculate Expiry: Now + 90 Days
+                    current_time = datetime.now(timezone.utc)
+                    end_date = current_time + timedelta(days=90)
+
+                    subscription_data = {
+                        "user_id": user_id,
+                        "start_date": current_time.isoformat(),
+                        "end_date": end_date.isoformat(),
+                        "plan_type": "student_quarterly",
+                        # You can add email/payment_id if your table has those columns
+                        # "email": user_data.get('email'), 
+                        # "payment_id": data.razorpay_payment_id 
+                    }
+                    
+                    # Use upsert() so if they renew, it updates the existing row instead of failing
+                    supabase.table("enterprise_subscriptions").upsert(subscription_data).execute()
+                    print(f"Enterprise subscription activated for {user_id} until {end_date}")
+                    
+                except Exception as log_error:
+                    print(f"Enterprise Log Error: {log_error}")
 
         return {"status": "success", "new_balance": new_balance, "added": credits_to_add}
 
-    except SignatureVerificationError:
-        raise HTTPException(status_code=400, detail="Invalid payment signature")
     except Exception as e:
         print(f"Payment Verification Failed: {e}")
         raise HTTPException(status_code=500, detail="Verification Process Failed")    
-from fastapi.responses import FileResponse
+    
+    
+# @app.post("/api/verify_payment") # Note: Changed from verify-payment to verify_payment
+# async def verify_payment(data: PaymentVerification):
+#     try:
+#         # 1. Verify Signature
+#         params_dict = {
+#             'razorpay_order_id': data.razorpay_order_id,
+#             'razorpay_payment_id': data.razorpay_payment_id,
+#             'razorpay_signature': data.razorpay_signature
+#         }
+#         client.utility.verify_payment_signature(params_dict)
+
+#         # 2. Fetch Order Details to confirm amount
+#         order_info = client.order.fetch(data.razorpay_order_id)
+#         amount_paid = order_info['amount'] / 100  # Convert paise back to Rupees
+#         user_id = order_info['notes']['user_id']
+
+#         # 3. Determine Credits based on Price
+#         credits_to_add = 0
+#         if amount_paid == 1:          # <--- ENTERPRISE LOGIC ADDED
+#             credits_to_add = 50000
+#         elif amount_paid == 49:
+#             credits_to_add = 20
+#         elif amount_paid == 199:
+#             credits_to_add = 200
+#         elif amount_paid == 999:
+#             credits_to_add = 1500
+        
+#         # 4. Update Database (Supabase)
+#         # Fetch current credits first
+#         response = supabase.table("users").select("credits").eq("id", user_id).execute()
+        
+#         # Handle case where user might not have a credit entry yet
+#         if response.data:
+#             current_credits = response.data[0]['credits'] or 0
+#             new_balance = current_credits + credits_to_add
+            
+#             # Push new balance to DB
+#             supabase.table("users").update({"credits": new_balance}).eq("id", user_id).execute()
+#         else:
+#             # Fallback (should typically not happen for logged in users)
+#             print(f"User {user_id} not found in DB during credit update.")
+
+#         return {"status": "success", "new_balance": new_balance, "added": credits_to_add}
+
+#     except SignatureVerificationError:
+#         raise HTTPException(status_code=400, detail="Invalid payment signature")
+#     except Exception as e:
+#         print(f"Payment Verification Failed: {e}")
+#         raise HTTPException(status_code=500, detail="Verification Process Failed")    
+# from fastapi.responses import FileResponse
 
 @app.get("/robots.txt")
 async def get_robots():
@@ -477,4 +550,21 @@ async def clean_data_endpoint(request: Request):
         }
     except Exception as e:
         print(f"Clean Error: {e}")
+        return JSONResponse(status_code=500, content={"detail": str(e)})
+    
+@app.post("/api/export-csv")
+async def export_csv(request: Request):
+    try:
+        data = await request.json()
+        df = pd.DataFrame(data['rows'])
+        
+        # Convert DF to CSV string
+        stream = io.StringIO()
+        df.to_csv(stream, index=False)
+        response = StreamingResponse(iter([stream.getvalue()]), media_type="text/csv")
+        
+        # Set filename
+        response.headers["Content-Disposition"] = "attachment; filename=Cleaned_Data_MorphAI.csv"
+        return response
+    except Exception as e:
         return JSONResponse(status_code=500, content={"detail": str(e)})

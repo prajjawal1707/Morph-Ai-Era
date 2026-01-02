@@ -1002,6 +1002,32 @@
             /* Darker orange */
         }
 
+        /* --- Download CSV Button (Cyan Style) --- */
+        #btnDownload {
+            background: transparent;
+            /* Or rgba(0, 229, 255, 0.1) for tinted */
+            border: 1px solid #00e5ff;
+            color: #00e5ff;
+            border-radius: 10px;
+            height: 36px;
+            padding: 0 14px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            opacity: 0.9;
+            transition: all 0.3s ease;
+            align-items: center;
+            gap: 8px;
+            /* Important: We set display via JS, but here are flex props for when it shows */
+            justify-content: center;
+        }
+
+        #btnDownload:hover {
+            background: rgba(0, 229, 255, 0.15);
+            box-shadow: 0 0 12px rgba(0, 229, 255, 0.4);
+            transform: translateY(-1px);
+        }
+
         /* Animations */
         @keyframes popUp {
             to {
@@ -1162,6 +1188,9 @@
 
                     <button id="btnClean" class="btn" onclick="triggerClean()">
                         <i class="fa-solid fa-broom"></i> Clean Data
+                    </button>
+                    <button id="btnDownload" class="btn" style="display: none;" onclick="downloadCleanData()">
+                        <i class="fa-solid fa-file-export"></i> Download CSV
                     </button>
 
                     <button id="btnForecast" class="btn">
@@ -2332,7 +2361,53 @@
             }
         });
 
-
+        // --- DOWNLOAD CLEAN DATA FUNCTION ---
+async function downloadCleanData() {
+    if (!DATASET || DATASET.length === 0) return alert("No data to download.");
+    
+    const btn = document.getElementById('btnDownload');
+    const originalHtml = btn.innerHTML;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving...';
+    btn.disabled = true;
+    
+    try {
+        // 1. Create a CSV string from the DATASET JSON
+        // We do this in JS to save a backend trip (faster)
+        const headers = Object.keys(DATASET[0]);
+        const csvRows = [];
+        
+        // Add Header Row
+        csvRows.push(headers.join(','));
+        
+        // Add Data Rows
+        for (const row of DATASET) {
+            const values = headers.map(header => {
+                const escaped = ('' + row[header]).replace(/"/g, '\\"');
+                return `"${escaped}"`; // Wrap in quotes to handle commas in data
+            });
+            csvRows.push(values.join(','));
+        }
+        
+        const csvString = csvRows.join('\n');
+        const blob = new Blob([csvString], { type: 'text/csv' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        
+        a.setAttribute('hidden', '');
+        a.setAttribute('href', url);
+        a.setAttribute('download', 'MorphAI_Cleaned_Data.csv');
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        
+    } catch (e) {
+        console.error(e);
+        alert("Error generating CSV.");
+    } finally {
+        btn.innerHTML = originalHtml;
+        btn.disabled = false;
+    }
+}
         // --- DOWNLOAD SINGLE GRAPH WITH SUBTLE WATERMARK ---
         async function downloadSingleGraph(elementId, fileName) {
             const graphDiv = document.getElementById(elementId);
@@ -2994,7 +3069,10 @@ ${result.score > 80 ? "Data is good for Forecasting." : "We recommend cleaning e
                     if (typeof refreshAll === 'function') {
                         refreshAll(); // <--- THIS UPDATES THE GRAPHS
                     }
-
+                    const btnDownload = document.getElementById('btnDownload');
+                    if (btnDownload) {
+                        btnDownload.style.display = 'inline-flex'; // Make it visible!
+                    }
                     // H. Show Success Message
                     alert(`✅ Data Cleaned Successfully!\n\n🗑️ Removed ${result.rows_removed} bad rows.\n✨ New Health Score: 100/100`);
 

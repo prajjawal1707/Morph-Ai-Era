@@ -185,9 +185,18 @@ async def update_profile(
 
 
 # now i am writing code for enterprise model when you will launch enterprise model just on the upper code and off the lower google auth check
+# --- ENTERPRISE CONFIGURATION ---
+# Add new domains here in the future
+ENTERPRISE_DOMAINS = [
+    "du.ac.in", 
+    "iitm.ac.in", 
+    "ds.study.iitm.ac.in"
+]
 
-# --- ADD THIS AT THE TOP OF auth.py ---
-EDU_DOMAINS = ["du.ac.in", "iitm.ac.in", "smail.iitm.ac.in", "morph-ai.com"]
+def is_enterprise_email(email: str) -> bool:
+    """Checks if the email belongs to an Enterprise Domain."""
+    domain = email.split('@')[-1].lower()
+    return any(domain.endswith(edu) for edu in ENTERPRISE_DOMAINS)
 
 # --- REPLACE THE CALLBACK FUNCTION ---
 @router.post("/auth/google/callback")
@@ -210,31 +219,28 @@ async def google_auth_callback(request: Request):
         
         user = auth_response.user
         
-        # --- FIX STARTS HERE: Set Default Redirect ---
+        # --- DEFAULT REDIRECT (Prevents crash for existing users) ---
         redirect_url = "/dashboard" 
-        # ---------------------------------------------
+        # ------------------------------------------------------------
 
-        # 2. CHECK PROFILE & DETERMINE FLOW
+        # 2. Check Profile
         try:
             profile_response = supabase.table('users').select("*").eq('id', user.id).execute()
             
-            # IF NEW USER (Profile missing)
+            # 3. IF NEW USER (Profile missing)
             if not profile_response.data:
                 print(f"New Google User detected: {user.email}")
                 
-                # A. Check if Enterprise Domain
-                domain = user.email.split('@')[-1].lower()
-                is_enterprise = any(domain.endswith(edu) for edu in EDU_DOMAINS)
+                # --- ENTERPRISE CHECK ---
+                initial_credits = 10  # Default for normal users
                 
-                initial_credits = 10     # Default for normal users
-                
-                # B. Enterprise Rule: 0 Credits until they pay ₹1
-                if is_enterprise:
-                    print(f"Enterprise User Detected ({user.email}). Redirecting to payment.")
-                    initial_credits = 0
-                    redirect_url = "/dashboard?action=verify_enterprise" # <--- Overwrites default if needed
+                if is_enterprise_email(user.email):
+                    print(f"🎓 Enterprise User: {user.email}")
+                    initial_credits = 0  # Start with 0 until verified
+                    redirect_url = "/dashboard?action=verify_enterprise" # Trigger Popup
+                # ------------------------
 
-                # C. Create Profile
+                # Create Profile
                 raw_username = user.user_metadata.get('full_name') or user.email.split('@')[0]
                 new_profile = {
                     "id": user.id,
@@ -248,10 +254,8 @@ async def google_auth_callback(request: Request):
         except Exception as db_error:
             print(f"Warning: Profile Sync Failed: {db_error}")
 
-        # 3. Success - Log them in and Redirect
+        # 4. Success Redirect
         access_token = auth_response.session.access_token
-        
-        # Now 'redirect_url' is guaranteed to exist (either "/dashboard" or the verify link)
         response = RedirectResponse(url=redirect_url, status_code=303)
         response.set_cookie(key="access_token", value=f"Bearer {access_token}", httponly=True, samesite="lax")
         return response
