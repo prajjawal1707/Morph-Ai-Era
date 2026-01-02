@@ -23,7 +23,7 @@ import os
 from fastapi import FastAPI, Request, HTTPException, UploadFile, File, Form
 from app.services.file_handler import process_uploaded_file # <-- Import the new function
 from io import BytesIO
-
+from supabase import create_client, Client
 class PaymentVerification(BaseModel):
     razorpay_order_id: str
     razorpay_payment_id: str
@@ -33,7 +33,7 @@ RAZORPAY_KEY_ID = os.environ.get('RAZORPAY_KEY_ID')
 RAZORPAY_KEY_SECRET = os.environ.get('RAZORPAY_KEY_SECRET')
 
 client = razorpay.Client(auth=(RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET))
-
+# supabase: Client = create_client(url, key)
 
 # =================================================================
 #  2. APP INITIALIZATION & CONFIGURATION
@@ -371,7 +371,8 @@ async def get_forgot_password(request: Request):
     return templates.TemplateResponse("forgot_password.html", {
         "request": request, 
         "supabase_url": os.environ.get("SUPABASE_URL"),
-        "supabase_key": os.environ.get("SUPABASE_KEY") # Ensure this is the ANON key in your .env
+        "supabase_key": os.environ.get("SUPABASE_KEY")
+        supabase: Client = create_client(url, key)# Ensure this is the ANON key in your .env
     })
 
 @app.get("/reset-password", response_class=HTMLResponse)
