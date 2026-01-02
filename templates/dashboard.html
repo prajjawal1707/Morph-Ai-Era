@@ -2568,6 +2568,12 @@
                 const file = e.target.files[0];
                 if (!file) return;
 
+                if (file.name.endsWith('.xlsx') || file.name.endsWith('.xls')) {
+                    CURRENT_FILE_TYPE = 'xlsx';
+                } else {
+                    // This handles .csv and .json
+                    CURRENT_FILE_TYPE = 'csv';
+                }
                 // 1. Pre-Check Credits
                 if (CURRENT_CREDITS <= 0) {
                     useCredit();
@@ -2588,7 +2594,9 @@
                         if (!result) {
                             e.target.value = null;
                             return;
+
                         }
+
                     }
 
                     // --- COMMON SUCCESS LOGIC ---

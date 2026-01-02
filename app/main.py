@@ -230,7 +230,6 @@ async def verify_payment(data: PaymentVerification):
         is_enterprise_verification = False
 
         if amount_paid == 1:
-            # --- ENTERPRISE LOGIC ---
             credits_to_add = 50000
             is_enterprise_verification = True
         elif amount_paid == 49:
@@ -240,6 +239,10 @@ async def verify_payment(data: PaymentVerification):
         elif amount_paid == 999:
             credits_to_add = 1500
         
+        # --- FIX 1: Initialize new_balance to prevent 500 Error ---
+        new_balance = 0
+        # ----------------------------------------------------------
+
         # 4. Update Main User Credits
         response = supabase.table("users").select("graph_credits, email").eq("id", user_id).execute()
         
@@ -254,7 +257,6 @@ async def verify_payment(data: PaymentVerification):
             # 5. Log to 'enterprise_subscriptions' Table
             if is_enterprise_verification:
                 try:
-                    # Calculate Expiry: Now + 90 Days
                     current_time = datetime.now(timezone.utc)
                     end_date = current_time + timedelta(days=90)
 
@@ -262,25 +264,23 @@ async def verify_payment(data: PaymentVerification):
                         "user_id": user_id,
                         "start_date": current_time.isoformat(),
                         "end_date": end_date.isoformat(),
-                        "plan_type": "student_quarterly",
-                        # You can add email/payment_id if your table has those columns
-                        # "email": user_data.get('email'), 
-                        # "payment_id": data.razorpay_payment_id 
+                        "plan_type": "student_quarterly"
                     }
                     
-                    # Use upsert() so if they renew, it updates the existing row instead of failing
+                    # Use upsert to handle re-payments gracefully
                     supabase.table("enterprise_subscriptions").upsert(subscription_data).execute()
-                    print(f"Enterprise subscription activated for {user_id} until {end_date}")
+                    print(f"Enterprise subscription activated for {user_id}")
                     
                 except Exception as log_error:
                     print(f"Enterprise Log Error: {log_error}")
+        else:
+            print(f"CRITICAL: User {user_id} paid but has no profile. Cannot add credits.")
 
         return {"status": "success", "new_balance": new_balance, "added": credits_to_add}
 
     except Exception as e:
         print(f"Payment Verification Failed: {e}")
-        raise HTTPException(status_code=500, detail="Verification Process Failed")    
-    
+        raise HTTPException(status_code=500, detail=f"Verification Error: {str(e)}")
     
 # @app.post("/api/verify_payment") # Note: Changed from verify-payment to verify_payment
 # async def verify_payment(data: PaymentVerification):
