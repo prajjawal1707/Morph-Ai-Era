@@ -11,7 +11,7 @@ from fastapi import Depends
 from fastapi.responses import RedirectResponse
 from app.api.auth import get_current_user # This imports your security guard
 import time
-# from supabase import create_client
+from fastapi.responses import StreamingResponse
 from supabase import create_client, Client
 from app.api import upload, chart, auth  # <-- This line now works because auth.py exists
 from app.services.file_handler import get_dataframe
@@ -23,7 +23,7 @@ import os
 from fastapi import FastAPI, Request, HTTPException, UploadFile, File, Form
 from app.services.file_handler import process_uploaded_file # <-- Import the new function
 from io import BytesIO
-from supabase import create_client, Client
+# from supabase import create_client, Client
 class PaymentVerification(BaseModel):
     razorpay_order_id: str
     razorpay_payment_id: str
@@ -33,7 +33,11 @@ RAZORPAY_KEY_ID = os.environ.get('RAZORPAY_KEY_ID')
 RAZORPAY_KEY_SECRET = os.environ.get('RAZORPAY_KEY_SECRET')
 
 client = razorpay.Client(auth=(RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET))
-# supabase: Client = create_client(url, key)
+
+url = os.environ.get("SUPABASE_URL")
+key = os.environ.get("SUPABASE_KEY")
+# Initialize it ONCE here, globally
+supabase: Client = create_client(url, key)
 
 # =================================================================
 #  2. APP INITIALIZATION & CONFIGURATION
@@ -372,7 +376,7 @@ async def get_forgot_password(request: Request):
         "request": request, 
         "supabase_url": os.environ.get("SUPABASE_URL"),
         "supabase_key": os.environ.get("SUPABASE_KEY")
-        supabase: Client = create_client(url, key)# Ensure this is the ANON key in your .env
+        # supabase: Client = create_client(url, key)# Ensure this is the ANON key in your .env
     })
 
 @app.get("/reset-password", response_class=HTMLResponse)
@@ -553,19 +557,36 @@ async def clean_data_endpoint(request: Request):
         print(f"Clean Error: {e}")
         return JSONResponse(status_code=500, content={"detail": str(e)})
     
-@app.post("/api/export-csv")
-async def export_csv(request: Request):
+@app.post("/api/export-data")
+async def export_data_endpoint(request: Request):
     try:
-        data = await request.json()
-        df = pd.DataFrame(data['rows'])
+        body = await request.json()
+        rows = body.get('rows', [])
+        file_format = body.get('format', 'csv') # 'csv' or 'xlsx'
         
-        # Convert DF to CSV string
-        stream = io.StringIO()
-        df.to_csv(stream, index=False)
-        response = StreamingResponse(iter([stream.getvalue()]), media_type="text/csv")
+        df = pd.DataFrame(rows)
         
-        # Set filename
-        response.headers["Content-Disposition"] = "attachment; filename=Cleaned_Data_MorphAI.csv"
-        return response
+        # --- EXPORT AS EXCEL ---
+        if file_format == 'xlsx':
+            output = io.BytesIO()
+            # Use ExcelWriter to create a real Excel file
+            with pd.ExcelWriter(output, engine='openpyxl') as writer:
+                df.to_excel(writer, index=False, sheet_name='Cleaned Data')
+            
+            output.seek(0)
+            return StreamingResponse(
+                output, 
+                media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                headers={"Content-Disposition": "attachment; filename=Cleaned_Data.xlsx"}
+            )
+            
+        # --- EXPORT AS CSV (Default) ---
+        else:
+            stream = io.StringIO()
+            df.to_csv(stream, index=False)
+            response = StreamingResponse(iter([stream.getvalue()]), media_type="text/csv")
+            response.headers["Content-Disposition"] = "attachment; filename=Cleaned_Data.csv"
+            return response
+
     except Exception as e:
         return JSONResponse(status_code=500, content={"detail": str(e)})

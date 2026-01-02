@@ -1431,6 +1431,9 @@
             });
         }
         // THIS IS YOUR NEW, CORRECT checkLoginStatus FUNCTION
+        let CURRENT_FILE_TYPE = 'csv'; // Default
+
+
 
         async function checkLoginStatus() {
             const userStatusP = document.getElementById('userStatus');
@@ -2125,12 +2128,6 @@
             logHistory("Calculate Running Total", `Metric: ${metric}, Sorted by: ${sortColumn}`);
         }
 
-
-
-
-
-
-
         // --- UI & Control Functions ---
         function loadSummary() {
             if (DATASET.length === 0) return;
@@ -2362,52 +2359,51 @@
         });
 
         // --- DOWNLOAD CLEAN DATA FUNCTION ---
-async function downloadCleanData() {
-    if (!DATASET || DATASET.length === 0) return alert("No data to download.");
-    
-    const btn = document.getElementById('btnDownload');
-    const originalHtml = btn.innerHTML;
-    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving...';
-    btn.disabled = true;
-    
-    try {
-        // 1. Create a CSV string from the DATASET JSON
-        // We do this in JS to save a backend trip (faster)
-        const headers = Object.keys(DATASET[0]);
-        const csvRows = [];
-        
-        // Add Header Row
-        csvRows.push(headers.join(','));
-        
-        // Add Data Rows
-        for (const row of DATASET) {
-            const values = headers.map(header => {
-                const escaped = ('' + row[header]).replace(/"/g, '\\"');
-                return `"${escaped}"`; // Wrap in quotes to handle commas in data
-            });
-            csvRows.push(values.join(','));
+        async function downloadCleanData() {
+            if (!DATASET || DATASET.length === 0) return alert("No data to download.");
+
+            const btn = document.getElementById('btnDownload');
+            const originalHtml = btn.innerHTML;
+
+            // Update button text based on type
+            const fileExt = CURRENT_FILE_TYPE === 'xlsx' ? 'Excel' : 'CSV';
+            btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Saving ${fileExt}...`;
+            btn.disabled = true;
+
+            try {
+                const response = await fetch('/api/export-data', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        rows: DATASET,
+                        format: CURRENT_FILE_TYPE // <--- Sends 'xlsx' or 'csv'
+                    })
+                });
+
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+
+                    // Set correct extension
+                    const filename = `MorphAI_Cleaned_Data.${CURRENT_FILE_TYPE}`;
+
+                    a.href = url;
+                    a.download = filename;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                } else {
+                    alert("Export failed.");
+                }
+            } catch (e) {
+                console.error(e);
+                alert("Error downloading file.");
+            } finally {
+                btn.innerHTML = originalHtml;
+                btn.disabled = false;
+            }
         }
-        
-        const csvString = csvRows.join('\n');
-        const blob = new Blob([csvString], { type: 'text/csv' });
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        
-        a.setAttribute('hidden', '');
-        a.setAttribute('href', url);
-        a.setAttribute('download', 'MorphAI_Cleaned_Data.csv');
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        
-    } catch (e) {
-        console.error(e);
-        alert("Error generating CSV.");
-    } finally {
-        btn.innerHTML = originalHtml;
-        btn.disabled = false;
-    }
-}
         // --- DOWNLOAD SINGLE GRAPH WITH SUBTLE WATERMARK ---
         async function downloadSingleGraph(elementId, fileName) {
             const graphDiv = document.getElementById(elementId);
