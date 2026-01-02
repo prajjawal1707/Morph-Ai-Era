@@ -210,6 +210,10 @@ async def google_auth_callback(request: Request):
         
         user = auth_response.user
         
+        # --- FIX STARTS HERE: Set Default Redirect ---
+        redirect_url = "/dashboard" 
+        # ---------------------------------------------
+
         # 2. CHECK PROFILE & DETERMINE FLOW
         try:
             profile_response = supabase.table('users').select("*").eq('id', user.id).execute()
@@ -223,13 +227,12 @@ async def google_auth_callback(request: Request):
                 is_enterprise = any(domain.endswith(edu) for edu in EDU_DOMAINS)
                 
                 initial_credits = 10     # Default for normal users
-                redirect_url = "/dashboard" # Normal users go straight to dashboard
                 
                 # B. Enterprise Rule: 0 Credits until they pay ₹1
                 if is_enterprise:
                     print(f"Enterprise User Detected ({user.email}). Redirecting to payment.")
                     initial_credits = 0
-                    redirect_url = "/dashboard?action=verify_enterprise" 
+                    redirect_url = "/dashboard?action=verify_enterprise" # <--- Overwrites default if needed
 
                 # C. Create Profile
                 raw_username = user.user_metadata.get('full_name') or user.email.split('@')[0]
@@ -247,6 +250,8 @@ async def google_auth_callback(request: Request):
 
         # 3. Success - Log them in and Redirect
         access_token = auth_response.session.access_token
+        
+        # Now 'redirect_url' is guaranteed to exist (either "/dashboard" or the verify link)
         response = RedirectResponse(url=redirect_url, status_code=303)
         response.set_cookie(key="access_token", value=f"Bearer {access_token}", httponly=True, samesite="lax")
         return response
@@ -254,7 +259,6 @@ async def google_auth_callback(request: Request):
     except Exception as e:
         print(f"Google Sign-In Critical Error: {e}")
         return RedirectResponse(url="/login?error=Google+sign-in+failed", status_code=303)
-
 
 
 
