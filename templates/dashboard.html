@@ -1166,8 +1166,8 @@
                 <div class="group">
                     <button id="btnUpdate" class="btn primary"><i class="fa-solid fa-rotate"></i>&nbsp;Update
                         Chart</button>
-                    <button id="btnCalc" class="btn success"><i class="fa-solid fa-calculator"></i>&nbsp;Calculate
-                        Metrics</button>
+                    <!-- <button id="btnCalc" class="btn success"><i class="fa-solid fa-calculator"></i>&nbsp;Calculate
+                        Metrics</button> -->
                     <button id="btn-download-pdf" class="btn primary"
                         style="background: #1E90FF; border:none; display:flex; align-items:center; gap:8px;">
                         <i class="fa-solid fa-file-pdf"></i> Download Smart PDF
@@ -1540,6 +1540,110 @@
                 alert('Error: ' + error.message);
             }
         }
+// for student verification
+        async function initiatePayment(price) {
+            console.log("Initiating payment for:", price);
+
+            // 1. Auth Check
+            if (!CURRENT_USER) {
+                if (price === 1) {
+                    alert("Session expired. Please log in again to verify.");
+                    window.location.href = '/login';
+                    return;
+                }
+                document.getElementById('pricing-modal').style.display = 'none';
+                if (confirm("You must be logged in to purchase credits. Sign Up now?")) {
+                    window.location.href = '/signup';
+                }
+                return;
+            }
+
+            try {
+                // 2. Create Order on Backend
+                const orderResponse = await fetch('/api/create_order', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ amount: price })
+                });
+
+                if (!orderResponse.ok) throw new Error('Failed to create order');
+                const order = await orderResponse.json();
+
+                // 3. Dynamic Description
+                let desc = `Credit Pack (₹${price})`;
+                if (price === 1) desc = "Student Verification Fee";
+
+                // 4. RAZORPAY OPTIONS (Merged with your new styling)
+                const options = {
+                    "key": "rzp_live_RUz3YCUSovAxZr", // Ensure this matches your real key
+                    "amount": order.amount,
+                    "currency": "INR",
+                    "name": "Morph-AI-Era",
+                    "description": desc,
+                    "image": "https://morph-ai-era.online/static/logo.png", // Add your logo URL here if you have one
+                    "order_id": order.id,
+
+                    // UI Customization
+                    "theme": {
+                        "color": "#1E90FF" // Matches your website brand color
+                    },
+                    "prefill": {
+                        "email": CURRENT_USER.email, // Auto-fills the user's email
+                        "name": CURRENT_USER.username
+                    },
+
+                    // The Critical Success Handler
+                    "handler": async function (response) {
+                        try {
+                            const verifyResponse = await fetch('/api/verify_payment', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    razorpay_order_id: response.razorpay_order_id,
+                                    razorpay_payment_id: response.razorpay_payment_id,
+                                    razorpay_signature: response.razorpay_signature
+                                })
+                            });
+
+                            const verifyData = await verifyResponse.json();
+
+                            if (verifyData.status === 'success') {
+                                alert(`Success! ${verifyData.added} credits added.`);
+                                document.getElementById('pricing-modal').style.display = 'none';
+
+                                CURRENT_CREDITS = verifyData.new_balance;
+                                updateCreditDisplay();
+
+                                // If it was the student verification, clean the URL
+                                if (price === 1) {
+                                    window.history.replaceState({}, document.title, "/dashboard");
+                                }
+                            } else {
+                                alert('Verification failed.');
+                            }
+                        } catch (error) {
+                            console.error(error);
+                            alert('Payment received but verification failed.');
+                        }
+                    }
+                };
+
+                const rzp = new Razorpay(options);
+
+                // Handle Payment Failures
+                rzp.on('payment.failed', function (response) {
+                    alert("Payment Failed: " + response.error.description);
+                });
+
+                rzp.open();
+
+            } catch (error) {
+                console.error('Payment Error:', error);
+                alert('Error: ' + error.message);
+            }
+        }
+
+
         // --- Data & History Management ---
         let CURRENT_CREDITS = 0; // Default to 0, will be fetched from backend
         let CURRENT_USER = null; // Default to null

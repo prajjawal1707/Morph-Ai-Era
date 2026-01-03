@@ -184,85 +184,99 @@ async def update_profile(
         raise HTTPException(status_code=500, detail="Error updating profile")
 
 
-# now i am writing code for enterprise model when you will launch enterprise model just on the upper code and off the lower google auth check
-# --- ENTERPRISE CONFIGURATION ---
-# Add new domains here in the future
-ENTERPRISE_DOMAINS = [
-    "du.ac.in", 
-    "iitm.ac.in", 
-    "ds.study.iitm.ac.in"
-]
+# from datetime import datetime, timedelta
 
-def is_enterprise_email(email: str) -> bool:
-    """Checks if the email belongs to an Enterprise Domain."""
-    domain = email.split('@')[-1].lower()
-    return any(domain.endswith(edu) for edu in ENTERPRISE_DOMAINS)
+ENTERPRISE_DOMAINS = {
+    "rc.du.ac.in": "DU",
+    "iitm.ac.in": "IITM"
+}
 
-# --- REPLACE THE CALLBACK FUNCTION ---
+ENTERPRISE_CREDITS = 50000
+FREE_CREDITS = 10
+ENTERPRISE_DURATION_DAYS = 90
+
+
 @router.post("/auth/google/callback")
 async def google_auth_callback(request: Request):
     form_data = await request.form()
-    credential = form_data.get('credential')
-    
+    credential = form_data.get("credential")
+
     if not credential:
         raise HTTPException(status_code=400, detail="No credential provided")
-    
+
     try:
-        # 1. Sign in with Google
+        # 1. Google Sign-In via Supabase
         auth_response = supabase.auth.sign_in_with_id_token({
             "provider": "google",
             "token": credential
-        })        
-        
+        })
+
         if not auth_response.session:
-            raise Exception("Google Sign-In failed with Supabase.")
-        
+            raise Exception("Google Sign-In failed.")
+
         user = auth_response.user
-        
-        # --- DEFAULT REDIRECT (Prevents crash for existing users) ---
-        redirect_url = "/dashboard" 
-        # ------------------------------------------------------------
+        email = user.email.lower()
+        domain = email.split("@")[-1]
 
-        # 2. Check Profile
-        try:
-            profile_response = supabase.table('users').select("*").eq('id', user.id).execute()
-            
-            # 3. IF NEW USER (Profile missing)
-            if not profile_response.data:
-                print(f"New Google User detected: {user.email}")
-                
-                # --- ENTERPRISE CHECK ---
-                initial_credits = 10  # Default for normal users
-                
-                if is_enterprise_email(user.email):
-                    print(f"🎓 Enterprise User: {user.email}")
-                    initial_credits = 0  # Start with 0 until verified
-                    redirect_url = "/dashboard?action=verify_enterprise" # Trigger Popup
-                # ------------------------
+        # 2. Check if profile exists
+        profile_response = supabase.table("users").select("*").eq("id", user.id).execute()
 
-                # Create Profile
-                raw_username = user.user_metadata.get('full_name') or user.email.split('@')[0]
-                new_profile = {
-                    "id": user.id,
-                    "email": user.email,
-                    "username": raw_username,
-                    "graph_credits": initial_credits
-                }
-                
-                supabase.table('users').insert(new_profile).execute()
-                
-        except Exception as db_error:
-            print(f"Warning: Profile Sync Failed: {db_error}")
+        if not profile_response.data:
+            print(f"New user detected: {email}")
 
-        # 4. Success Redirect
+            # Username fallback
+            raw_username = (
+                user.user_metadata.get("full_name")
+                or user.user_metadata.get("name")
+                or email.split("@")[0]
+            )
+
+            # 3. ENTERPRISE CHECK
+            if domain in ENTERPRISE_DOMAINS:
+                plan = "enterprise_student"
+                role = "student_enterprise"
+                credits = ENTERPRISE_CREDITS
+                enterprise_expires_at = datetime.utcnow() + timedelta(days=ENTERPRISE_DURATION_DAYS)
+
+                print(f"Enterprise student detected: {ENTERPRISE_DOMAINS[domain]}")
+
+            else:
+                plan = "free"
+                role = "user"
+                credits = FREE_CREDITS
+                enterprise_expires_at = None
+
+            # 4. Create profile
+            new_profile = {
+                "id": user.id,
+                "email": email,
+                "username": raw_username,
+                "plan": plan,
+                "role": role,
+                "graph_credits": credits,
+                "enterprise_expires_at": enterprise_expires_at
+            }
+
+            supabase.table("users").insert(new_profile).execute()
+            print("Profile created successfully.")
+
+        # 5. Login success
         access_token = auth_response.session.access_token
-        response = RedirectResponse(url=redirect_url, status_code=303)
-        response.set_cookie(key="access_token", value=f"Bearer {access_token}", httponly=True, samesite="lax")
+        response = RedirectResponse(url="/dashboard", status_code=303)
+        response.set_cookie(
+            key="access_token",
+            value=f"Bearer {access_token}",
+            httponly=True,
+            samesite="lax"
+        )
         return response
 
     except Exception as e:
-        print(f"Google Sign-In Critical Error: {e}")
-        return RedirectResponse(url="/login?error=Google+sign-in+failed", status_code=303)
+        print(f"Google Sign-In Error: {e}")
+        return RedirectResponse(
+            url="/login?error=Google+sign-in+failed",
+            status_code=303
+        )
 
 
 

@@ -180,34 +180,38 @@ class OrderRequest(BaseModel):
 
 @app.post("/api/create_order")
 async def create_order(request: OrderRequest, current_user: dict = Depends(get_current_user)):
+
     if not current_user:
-        raise HTTPException(
-            status_code=401, 
-            detail="User profile missing. Please log out and log in again."
-        )
-    try:
-        # 1. Security Check
-        allowed_prices = [1, 49, 199, 999] 
-        if request.amount not in allowed_prices:
-            raise HTTPException(status_code=400, detail="Invalid price package")
+        raise HTTPException(status_code=401, detail="Not authenticated")
 
-        # 2. Create Razorpay Order
-        # FIX: We use current_user['id'][:6] to take only the first 6 letters
-        data = {
-            "amount": request.amount * 100,
-            "currency": "INR",
-            "receipt": f"rcpt_{current_user['id'][:6]}_{int(time.time())}", 
-            "notes": {
-                "user_id": current_user['id'],
-                "plan_price": request.amount 
-            }
+    user_plan = current_user.get("plan")
+    user_role = current_user.get("role")
+
+    # ₹1 is ONLY for enterprise students
+    if request.amount == 1:
+        if user_role != "student_enterprise":
+            raise HTTPException(
+                status_code=403,
+                detail="₹1 plan is only available for verified student accounts"
+            )
+
+    allowed_prices = [1, 49, 199, 999]
+    if request.amount not in allowed_prices:
+        raise HTTPException(status_code=400, detail="Invalid price")
+
+    data = {
+        "amount": request.amount * 100,
+        "currency": "INR",
+        "receipt": f"rcpt_{current_user['id'][:6]}_{int(time.time())}",
+        "notes": {
+            "user_id": current_user["id"],
+            "plan_price": request.amount,
+            "role": user_role
         }
-        order = client.order.create(data=data)
-        return order
+    }
 
-    except Exception as e:
-        print(f"Error creating order: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+    return client.order.create(data=data)
+
     
 # Ensure these imports are at the top of your file
 from datetime import datetime, timedelta, timezone
@@ -215,78 +219,84 @@ from datetime import datetime, timedelta, timezone
 @app.post("/api/verify_payment")
 async def verify_payment(data: PaymentVerification):
     try:
-        # 1. Verify Signature
+        # 1. Verify Razorpay Signature
         params_dict = {
-            'razorpay_order_id': data.razorpay_order_id,
-            'razorpay_payment_id': data.razorpay_payment_id,
-            'razorpay_signature': data.razorpay_signature
+            "razorpay_order_id": data.razorpay_order_id,
+            "razorpay_payment_id": data.razorpay_payment_id,
+            "razorpay_signature": data.razorpay_signature
         }
         client.utility.verify_payment_signature(params_dict)
 
         # 2. Fetch Order Details
         order_info = client.order.fetch(data.razorpay_order_id)
-        amount_paid = order_info['amount'] / 100 
-        user_id = order_info['notes']['user_id']
+        amount_paid = order_info["amount"] / 100  # paise → INR
+        user_id = order_info["notes"]["user_id"]
 
-        # 3. Determine Credits & Type
+        # 3. Fetch User Role & Current Credits (CRITICAL)
+        user_response = (
+            supabase
+            .table("users")
+            .select("role, graph_credits")
+            .eq("id", user_id)
+            .single()
+            .execute()
+        )
+
+        if not user_response.data:
+            raise HTTPException(status_code=404, detail="User not found")
+
+        user_role = user_response.data["role"]
+        current_credits = user_response.data["graph_credits"] or 0
+
+        # 4. Determine Credits Securely
         credits_to_add = 0
-        is_enterprise_verification = False
 
         if amount_paid == 1:
+            if user_role != "student_enterprise":
+                raise HTTPException(
+                    status_code=403,
+                    detail="₹1 plan is only for verified student accounts"
+                )
             credits_to_add = 50000
-            is_enterprise_verification = True
+
         elif amount_paid == 49:
             credits_to_add = 20
+
         elif amount_paid == 199:
             credits_to_add = 200
+
         elif amount_paid == 999:
             credits_to_add = 1500
-        
-        # --- PREVENT CRASH: Initialize variable ---
-        new_balance = 0 
-        # ------------------------------------------
 
-        # 4. Update Main User Credits
-        # NOTE: Ensure 'supabase' client is initialized at the top of main.py
-        response = supabase.table("users").select("graph_credits, email").eq("id", user_id).execute()
-        
-        if response.data:
-            user_data = response.data[0]
-            current_credits = user_data.get('graph_credits') or 0
-            new_balance = current_credits + credits_to_add
-            
-            # Update balance
-            supabase.table("users").update({"graph_credits": new_balance}).eq("id", user_id).execute()
-
-            # 5. Log to 'enterprise_subscriptions' Table
-            if is_enterprise_verification:
-                try:
-                    # Calculate Expiry
-                    current_time = datetime.now(timezone.utc)
-                    end_date = current_time + timedelta(days=90)
-
-                    subscription_data = {
-                        "user_id": user_id,
-                        "start_date": current_time.isoformat(),
-                        "end_date": end_date.isoformat(),
-                        "plan_type": "student_quarterly"
-                    }
-                    
-                    # Upsert to separate table (Ensure RLS is disabled on this table!)
-                    supabase.table("enterprise_subscriptions").upsert(subscription_data).execute()
-                    print(f"Enterprise subscription activated for {user_id}")
-                    
-                except Exception as log_error:
-                    print(f"Enterprise Log Error: {log_error}")
         else:
-            print(f"CRITICAL WARNING: User {user_id} paid but has no profile row.")
+            raise HTTPException(status_code=400, detail="Invalid payment amount")
 
-        return {"status": "success", "new_balance": new_balance, "added": credits_to_add}
+        # 5. Update Credits
+        new_balance = current_credits + credits_to_add
+
+        supabase.table("users").update(
+            {"graph_credits": new_balance}
+        ).eq("id", user_id).execute()
+
+        return {
+            "status": "success",
+            "added": credits_to_add,
+            "new_balance": new_balance
+        }
+
+    except SignatureVerificationError:
+        raise HTTPException(status_code=400, detail="Invalid payment signature")
+
+    except HTTPException:
+        raise
 
     except Exception as e:
         print(f"Payment Verification Failed: {e}")
-        # Return a 500 error with details to help debugging
-        raise HTTPException(status_code=500, detail=f"Verification Error: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail="Payment verification failed"
+        )
+
     
 # @app.post("/api/verify_payment") # Note: Changed from verify-payment to verify_payment
 # async def verify_payment(data: PaymentVerification):
